@@ -39,6 +39,7 @@ import { useConnections } from "../../src/stores/connections"
 import { useAuth } from "../../src/stores/auth"
 import { useCatalog } from "../../src/stores/catalog"
 import { useSpeech } from "../../src/lib/speech"
+import { useKeyboardHeight } from "../../src/lib/use-keyboard-height"
 
 // --- Builtin slash commands ---
 const BUILTIN_COMMANDS: SlashCommand[] = [
@@ -144,6 +145,13 @@ export default function SessionScreen() {
       setInput((prev) => (prev ? prev + " " + text : text))
     }, []),
   )
+
+  // Android edge-to-edge (Expo SDK 54 / RN 0.81) makes KeyboardAvoidingView's
+  // behavior="padding" ineffective — the system no longer resizes the window,
+  // so the JS-measured keyboard height is wrong and the composer ends up hidden
+  // behind the keyboard. Track the real height from Keyboard events and pad the
+  // container directly. iOS keeps KeyboardAvoidingView (works reliably there).
+  const keyboardHeight = useKeyboardHeight()
 
   // Surface speech recognition failures (e.g. mic permission denied). Keyed
   // on the error value itself so it only fires once per distinct error, not
@@ -451,9 +459,26 @@ export default function SessionScreen() {
   }
 
   // In inverted mode, offset 0 = bottom. Show scroll button when scrolled away from bottom.
+  // atBottomRef mirrors that (in a ref, so onContentSizeChange below can read the
+  // latest value without being recreated on every scroll).
+  const atBottomRef = useRef(true)
   const handleScroll = useCallback((event: any) => {
     const { contentOffset } = event.nativeEvent
-    setShowScrollButton(contentOffset.y > 200)
+    const atBottom = contentOffset.y <= 200
+    atBottomRef.current = atBottom
+    setShowScrollButton(!atBottom)
+  }, [])
+
+  // Auto-scroll to the newest content as it streams in — but only when the user
+  // is already at the bottom; never yank them out of history they're reading.
+  // Fires on every content-height change (new messages AND text streaming into
+  // an existing bubble). Without this, maintainVisibleContentPosition anchors
+  // the viewport on the previously-visible item, so newly streamed text stays
+  // hidden just below the fold.
+  const handleContentSizeChange = useCallback(() => {
+    if (atBottomRef.current) {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false })
+    }
   }, [])
 
   // Debounce: onEndReached can fire multiple times during a single scroll gesture
@@ -592,20 +617,18 @@ export default function SessionScreen() {
       />
 
       <KeyboardAvoidingView
-        style={[s.container, isDark && s.containerDark]}
-        // Both platforms use "padding" so the composer/toolbar is pushed up
-        // above the keyboard via JS-measured keyboard height.
-        //
-        // Android previously relied on the native android:windowSoftInputMode
-        // (adjustResize, see AndroidManifest.xml) with behavior={undefined}
-        // to let the OS resize the window (see #70/#53). Since adopting
-        // Expo's mandatory edge-to-edge display, Android no longer resizes
-        // the window when the keyboard opens — the system assumes insets are
-        // handled dynamically — so adjustResize became a no-op and the
-        // bottom toolbar + input were left completely hidden behind the
-        // keyboard (#147). "padding" restores avoidance without depending
-        // on native resize.
-        behavior="padding"
+        style={[
+          s.container,
+          isDark && s.containerDark,
+          // Android: pad with the real keyboard height (see useKeyboardHeight)
+          // so the composer stays visible above the keyboard. iOS relies on
+          // behavior="padding" below.
+          Platform.OS === "android" && { paddingBottom: keyboardHeight },
+        ]}
+        // Android's KeyboardAvoidingView is unreliable under edge-to-edge, so
+        // its behavior is disabled there and avoidance is handled via the
+        // style padding above. iOS keeps "padding" (works reliably).
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         {/* Session info pulldown */}
@@ -681,6 +704,7 @@ export default function SessionScreen() {
               contentContainerStyle={s.messageList}
               onScroll={handleScroll}
               scrollEventThrottle={100}
+              onContentSizeChange={handleContentSizeChange}
               onEndReached={handleLoadMore}
               onEndReachedThreshold={0.5}
               // Prevent jump when older messages are prepended
