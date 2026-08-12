@@ -13,7 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "../../src/stores/auth"
-import { useSettings } from "../../src/stores/settings"
+import { useSettings, type ThemePreference } from "../../src/stores/settings"
 import {
   categories,
   categoryMeta,
@@ -75,7 +75,7 @@ export default function SettingsScreen() {
   const { t } = useTranslation()
 
   const { settings, hasBiometrics, updateSettings, lock } = useAuth()
-  const { notifications, setNotification, locale, setLocale } = useSettings()
+  const { notifications, setNotification, locale, setLocale, theme, setTheme } = useSettings()
   const [osGranted, setOsGranted] = useState<boolean | null>(null)
   const [telemetryUpdating, setTelemetryUpdating] = useState(false)
 
@@ -128,6 +128,12 @@ export default function SettingsScreen() {
     "zh-Hans": t("settings.language.zhHans"),
   }
 
+  const themeLabels: Record<ThemePreference, string> = {
+    system: t("settings.theme.system"),
+    light: t("settings.theme.light"),
+    dark: t("settings.theme.dark"),
+  }
+
   const handleLanguagePress = useCallback(() => {
     Alert.alert(t("settings.language.title"), undefined, [
       { text: localeLabels.system, onPress: () => setLocale("system") },
@@ -136,6 +142,15 @@ export default function SettingsScreen() {
       { text: t("common.cancel"), style: "cancel" },
     ])
   }, [t, setLocale, localeLabels])
+
+  const handleThemePress = useCallback(() => {
+    Alert.alert(t("settings.theme.title"), undefined, [
+      { text: themeLabels.system, onPress: () => setTheme("system") },
+      { text: themeLabels.light, onPress: () => setTheme("light") },
+      { text: themeLabels.dark, onPress: () => setTheme("dark") },
+      { text: t("common.cancel"), style: "cancel" },
+    ])
+  }, [t, setTheme, themeLabels])
 
   return (
     <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.content}>
@@ -239,6 +254,14 @@ export default function SettingsScreen() {
       </SettingSection>
 
       <SettingSection title={t("settings.sections.about")} isDark={isDark}>
+        <SettingRow
+          icon="contrast"
+          label={t("settings.theme.label")}
+          description={themeLabels[theme]}
+          isDark={isDark}
+          onPress={handleThemePress}
+          right={<Ionicons name="chevron-forward" size={20} color={isDark ? "#666666" : "#999999"} />}
+        />
         <SettingRow
           icon="language"
           label={t("settings.language.label")}

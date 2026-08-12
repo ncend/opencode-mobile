@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import * as SecureStore from "expo-secure-store"
+import { Appearance } from "react-native"
 import { type Category, defaultPreferences } from "../lib/notifications"
 import { clampPageSize, mergeStoredSettings } from "../lib/settings-merge"
 import { setAppLocale } from "../lib/i18n/config"
@@ -7,16 +8,25 @@ import type { LocalePreference } from "../lib/i18n/locale-resolve"
 
 const SETTINGS_KEY = "opencode_settings"
 
+export type ThemePreference = "system" | "light" | "dark"
+
+/** Force the app-wide color scheme, or follow the system when preference is "system". */
+export function applyAppTheme(preference: ThemePreference): void {
+  Appearance.setColorScheme(preference === "system" ? null : preference)
+}
+
 interface Settings {
   pageSize: number
   notifications: Record<Category, boolean>
   locale: LocalePreference
+  theme: ThemePreference
 }
 
 const DEFAULTS: Settings = {
   pageSize: 25,
   notifications: { ...defaultPreferences },
   locale: "system",
+  theme: "system",
 }
 
 interface SettingsState extends Settings {
@@ -25,10 +35,11 @@ interface SettingsState extends Settings {
   setPageSize: (size: number) => Promise<void>
   setNotification: (category: Category, enabled: boolean) => Promise<void>
   setLocale: (locale: LocalePreference) => Promise<void>
+  setTheme: (theme: ThemePreference) => Promise<void>
 }
 
 function snapshot(get: () => SettingsState): Settings {
-  return { pageSize: get().pageSize, notifications: get().notifications, locale: get().locale }
+  return { pageSize: get().pageSize, notifications: get().notifications, locale: get().locale, theme: get().theme }
 }
 
 async function persist(settings: Settings) {
@@ -47,6 +58,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
       const merged = mergeStoredSettings(DEFAULTS, parsed)
       set({ ...merged, loaded: true })
       setAppLocale(merged.locale)
+      applyAppTheme(merged.theme)
       return
     }
     set({ loaded: true })
@@ -68,5 +80,11 @@ export const useSettings = create<SettingsState>((set, get) => ({
     set({ locale })
     setAppLocale(locale) // applies immediately
     await persist({ ...snapshot(get), locale })
+  },
+
+  setTheme: async (theme) => {
+    set({ theme })
+    applyAppTheme(theme) // applies immediately, re-renders via useColorScheme
+    await persist({ ...snapshot(get), theme })
   },
 }))

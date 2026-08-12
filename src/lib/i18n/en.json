@@ -61,6 +61,13 @@
       "en": "English",
       "zhHans": "Simplified Chinese"
     },
+    "theme": {
+      "label": "Theme",
+      "title": "Choose Theme",
+      "system": "System Default",
+      "light": "Light",
+      "dark": "Dark"
+    },
     "footer": {
       "appName": "OpenCode Mobile",
       "tagline": "Connect to your AI coding assistant from anywhere"
