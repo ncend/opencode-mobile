@@ -11,6 +11,8 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
 } from "react-native"
 import { useLocalSearchParams, Stack, useRouter, useFocusEffect } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
@@ -43,6 +45,92 @@ import { useSettings } from "../../src/stores/settings"
 import { useSpeech } from "../../src/lib/speech"
 import { useKeyboardHeight } from "../../src/lib/use-keyboard-height"
 import { useAccent, type AccentState } from "../../src/lib/accents"
+
+// Header title marquee. When the session title overflows the header width it
+// scrolls, but never continuously: it holds still first so the start is
+// readable, scrolls left, pauses, scrolls back, pauses, then loops. Static
+// (non-overflowing) titles are plain text.
+const TITLE_HOLD_MS = 2000
+const TITLE_SCROLL_MS = 3000
+const TITLE_END_HOLD_MS = 1500
+const TITLE_GAP = 16
+
+const headerTitleStyles = StyleSheet.create({
+  wrap: { flex: 1, overflow: "hidden", justifyContent: "flex-start" },
+  title: { fontSize: 15, fontWeight: "600", color: "#0a0a0a" },
+  titleDark: { color: "#ffffff" },
+  measure: { position: "absolute", top: 0, left: -10000, opacity: 0 },
+})
+
+function MarqueeTitle({ text }: { text: string }) {
+  const isDark = useColorScheme() === "dark"
+  const [containerW, setContainerW] = useState<number | null>(null)
+  const [textW, setTextW] = useState<number | null>(null)
+  const offset = useRef(new Animated.Value(0)).current
+  const overflow = containerW !== null && textW !== null && textW > containerW
+
+  useEffect(() => {
+    if (!overflow) {
+      offset.setValue(0)
+      return
+    }
+    const distance = textW - containerW + TITLE_GAP
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.delay(TITLE_HOLD_MS),
+        Animated.timing(offset, {
+          toValue: -distance,
+          duration: TITLE_SCROLL_MS,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.delay(TITLE_END_HOLD_MS),
+        Animated.timing(offset, {
+          toValue: 0,
+          duration: TITLE_SCROLL_MS,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    )
+    anim.start()
+    return () => anim.stop()
+  }, [overflow, textW, containerW, offset])
+
+  return (
+    <>
+      <View pointerEvents="none" style={headerTitleStyles.measure}>
+        <Text
+          numberOfLines={1}
+          style={headerTitleStyles.title}
+          onTextLayout={(e) => {
+            const w = e.nativeEvent.lines[0]?.width
+            if (w) setTextW(Math.round(w))
+          }}
+        >
+          {text}
+        </Text>
+      </View>
+      <View
+        style={headerTitleStyles.wrap}
+        onLayout={(e) => setContainerW(Math.round(e.nativeEvent.layout.width))}
+      >
+        <Animated.Text
+          numberOfLines={1}
+          style={[
+            headerTitleStyles.title,
+            isDark && headerTitleStyles.titleDark,
+            overflow && { width: textW },
+            overflow && { transform: [{ translateX: offset }] },
+          ]}
+        >
+          {text}
+        </Animated.Text>
+      </View>
+    </>
+  )
+}
+
 
 // --- Builtin slash commands ---
 const BUILTIN_COMMANDS: SlashCommand[] = [
@@ -606,6 +694,7 @@ export default function SessionScreen() {
       <Stack.Screen
         options={{
           title: currentSession?.title || t("session.titleFallback"),
+          headerTitle: () => <MarqueeTitle text={currentSession?.title || t("session.titleFallback")} />,
           headerTitleStyle: { fontSize: 15 },
           headerRight: () => (
             <View style={s.headerRight}>
