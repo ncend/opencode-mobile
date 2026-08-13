@@ -2,6 +2,7 @@ import { useRef, useState } from "react"
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
+import { useAccent, type AccentState } from "../../lib/accents"
 
 interface QuestionOption {
   label: string
@@ -28,6 +29,8 @@ interface Props {
 
 export function QuestionPrompt({ request, isDark, onReply, onReject }: Props) {
   const { t } = useTranslation()
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const [answers, setAnswers] = useState<string[][]>(request.questions.map(() => []))
   const [custom, setCustom] = useState("")
   const [showCustom, setShowCustom] = useState(false)
@@ -83,7 +86,7 @@ export function QuestionPrompt({ request, isDark, onReply, onReject }: Props) {
   return (
     <View style={[s.card, isDark && s.cardDark]}>
       <View style={s.header}>
-        <Ionicons name="chatbubble-ellipses-outline" size={18} color="#8b5cf6" />
+        <Ionicons name="chatbubble-ellipses-outline" size={18} color={acc.cur.accent} />
         <Text style={[s.title, isDark && s.textWhite]}>{q.header || t("chat.questionPrompt.headerFallback")}</Text>
       </View>
       <Text style={[s.question, isDark && s.textWhite]}>{q.question}</Text>
@@ -121,12 +124,12 @@ export function QuestionPrompt({ request, isDark, onReply, onReject }: Props) {
                 autoFocus
               />
               <TouchableOpacity onPress={submitCustom} style={s.customSubmit}>
-                <Ionicons name="send" size={18} color="#8b5cf6" />
+                <Ionicons name="send" size={18} color={acc.cur.accent} />
               </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity style={[s.option, isDark && s.optionDark]} onPress={() => setShowCustom(true)}>
-              <Text style={[s.optionLabel, { color: "#8b5cf6" }]}>{t("chat.questionPrompt.customAnswerLabel")}</Text>
+              <Text style={[s.optionLabel, { color: acc.cur.accent }]}>{t("chat.questionPrompt.customAnswerLabel")}</Text>
             </TouchableOpacity>
           ))}
       </View>
@@ -156,55 +159,62 @@ export function QuestionPrompt({ request, isDark, onReply, onReject }: Props) {
   )
 }
 
-const s = StyleSheet.create({
-  card: {
-    margin: 12,
-    padding: 16,
-    backgroundColor: "#f5f3ff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#ede9fe",
-  },
-  cardDark: { backgroundColor: "#1a1a2e", borderColor: "#2a2a3e" },
-  header: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
-  title: { fontSize: 15, fontWeight: "600", color: "#6d28d9" },
-  textWhite: { color: "#ffffff" },
-  question: { fontSize: 14, lineHeight: 20, color: "#0a0a0a", marginBottom: 12 },
-  metaDark: { color: "#666666" },
+function makeStyles(acc: AccentState) {
+  return StyleSheet.create({
+    card: {
+      margin: 12,
+      padding: 16,
+      backgroundColor: acc.light.tintBg,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: "#ede9fe",
+    },
+    cardDark: { backgroundColor: acc.dark.tintSurface, borderColor: acc.dark.tintSurface },
+    header: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+    title: { fontSize: 15, fontWeight: "600", color: acc.light.primary },
+    textWhite: { color: "#ffffff" },
+    question: { fontSize: 14, lineHeight: 20, color: "#0a0a0a", marginBottom: 12 },
+    metaDark: { color: "#666666" },
 
-  options: { gap: 8 },
-  option: {
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-  },
-  optionDark: { backgroundColor: "#2a2a2a", borderColor: "#3a3a3a" },
-  optionSelected: { borderColor: "#8b5cf6", backgroundColor: "#f5f3ff" },
-  optionSelectedDark: { borderColor: "#8b5cf6", backgroundColor: "#2a1a3e" },
-  optionLabel: { fontSize: 14, fontWeight: "600", color: "#0a0a0a" },
-  optionLabelSelected: { color: "#6d28d9" },
-  optionDesc: { fontSize: 12, color: "#666666", marginTop: 2 },
+    options: { gap: 8 },
+    option: {
+      padding: 12,
+      borderRadius: 8,
+      backgroundColor: "#ffffff",
+      borderWidth: 1,
+      borderColor: "#e5e5e5",
+    },
+    optionDark: { backgroundColor: "#2a2a2a", borderColor: "#3a3a3a" },
+    optionSelected: { borderColor: acc.light.accent, backgroundColor: acc.light.tintBg },
+    optionSelectedDark: { borderColor: acc.dark.accent, backgroundColor: acc.dark.tintBg },
+    optionLabel: { fontSize: 14, fontWeight: "600", color: "#0a0a0a" },
+    optionLabelSelected: { color: acc.light.primary },
+    optionDesc: { fontSize: 12, color: "#666666", marginTop: 2 },
 
-  customRow: { flexDirection: "row", gap: 8 },
-  customInput: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    color: "#0a0a0a",
-  },
-  customInputDark: { backgroundColor: "#2a2a2a", borderColor: "#3a3a3a", color: "#ffffff" },
-  customSubmit: { justifyContent: "center", alignItems: "center", padding: 8 },
+    customRow: { flexDirection: "row", gap: 8 },
+    customInput: {
+      flex: 1,
+      backgroundColor: "#ffffff",
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 14,
+      borderWidth: 1,
+      borderColor: "#e5e5e5",
+      color: "#0a0a0a",
+    },
+    customInputDark: { backgroundColor: "#2a2a2a", borderColor: "#3a3a3a", color: "#ffffff" },
+    customSubmit: { justifyContent: "center", alignItems: "center", padding: 8 },
 
-  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12 },
-  dismiss: { fontSize: 14, color: "#999999" },
-  submitBtn: { backgroundColor: "#8b5cf6", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
-  submitBtnDark: { backgroundColor: "#7c3aed" },
-  submitText: { color: "#ffffff", fontWeight: "600", fontSize: 14 },
-})
+    footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12 },
+    dismiss: { fontSize: 14, color: "#999999" },
+    submitBtn: {
+      backgroundColor: acc.cur.accent,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 8,
+    },
+    submitBtnDark: { backgroundColor: "#7c3aed" },
+    submitText: { color: "#ffffff", fontWeight: "600", fontSize: 14 },
+  })
+}

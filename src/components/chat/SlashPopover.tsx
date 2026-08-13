@@ -2,6 +2,7 @@ import { useMemo } from "react"
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Keyboard, Platform } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
+import { useAccent, type AccentState } from "../../lib/accents"
 
 export interface SlashCommand {
   trigger: string
@@ -20,6 +21,8 @@ interface Props {
 
 export function SlashPopover({ query, commands, isDark, onSelect }: Props) {
   const { t } = useTranslation()
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const filtered = useMemo(() => {
     const q = query.toLowerCase()
     return commands.filter((c) => c.trigger.toLowerCase().startsWith(q) || c.title.toLowerCase().includes(q))
@@ -35,7 +38,7 @@ export function SlashPopover({ query, commands, isDark, onSelect }: Props) {
             <Ionicons
               name={cmd.icon as any}
               size={18}
-              color={cmd.type === "custom" ? "#8b5cf6" : isDark ? "#888888" : "#666666"}
+              color={cmd.type === "custom" ? acc.cur.accent : isDark ? "#888888" : "#666666"}
             />
             <View style={s.textCol}>
               <Text style={[s.trigger, isDark && s.textWhite]}>/{cmd.trigger}</Text>
@@ -57,34 +60,36 @@ export function SlashPopover({ query, commands, isDark, onSelect }: Props) {
   )
 }
 
-const s = StyleSheet.create({
-  popover: {
-    backgroundColor: "#ffffff",
-    borderTopWidth: 1,
-    borderTopColor: "#e5e5e5",
-    maxHeight: 220,
-  },
-  popoverDark: { backgroundColor: "#1a1a1a", borderTopColor: "#2a2a2a" },
-  scroll: { paddingVertical: 4 },
-  item: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  itemDark: {},
-  textCol: { flex: 1 },
-  trigger: { fontSize: 14, fontWeight: "600", color: "#0a0a0a" },
-  textWhite: { color: "#ffffff" },
-  desc: { fontSize: 12, color: "#999999", marginTop: 1 },
-  metaDark: { color: "#666666" },
-  badge: {
-    backgroundColor: "#f3e8ff",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  badgeDark: { backgroundColor: "#2a1a3e" },
-  badgeText: { fontSize: 10, color: "#8b5cf6", fontWeight: "600" },
-})
+function makeStyles(acc: AccentState) {
+  return StyleSheet.create({
+    popover: {
+      backgroundColor: "#ffffff",
+      borderTopWidth: 1,
+      borderTopColor: "#e5e5e5",
+      maxHeight: 220,
+    },
+    popoverDark: { backgroundColor: "#1a1a1a", borderTopColor: "#2a2a2a" },
+    scroll: { paddingVertical: 4 },
+    item: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    itemDark: {},
+    textCol: { flex: 1 },
+    trigger: { fontSize: 14, fontWeight: "600", color: "#0a0a0a" },
+    textWhite: { color: "#ffffff" },
+    desc: { fontSize: 12, color: "#999999", marginTop: 1 },
+    metaDark: { color: "#666666" },
+    badge: {
+      backgroundColor: "#f3e8ff",
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    badgeDark: { backgroundColor: "#2a1a3e" },
+    badgeText: { fontSize: 10, color: acc.light.accent, fontWeight: "600" },
+  })
+}

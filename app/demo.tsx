@@ -7,6 +7,7 @@ import { MessageBubble, PermissionPrompt } from "../src/components/chat"
 import { buildDemoScript, buildDemoCompletionMessage, buildDemoDenialMessage } from "../src/lib/demo-script"
 import { SETUP_GUIDE_URL } from "../src/lib/links"
 import { track, AnalyticsEvent } from "../src/lib/analytics"
+import { useAccent, type AccentState } from "../src/lib/accents"
 import {
   demoStepAdvancedProps,
   demoCompletedOutcome,
@@ -25,6 +26,8 @@ export default function DemoScreen() {
   const router = useRouter()
   const colorScheme = useColorScheme()
   const isDark = colorScheme === "dark"
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const { t } = useTranslation()
 
   // Built once per mount from pure, hardcoded data (src/lib/demo-script.ts).
@@ -61,7 +64,7 @@ export default function DemoScreen() {
       <Stack.Screen options={{ title: t("demo.title"), presentation: "card" }} />
       <View style={[s.container, isDark && s.containerDark]} testID="demo-screen">
         <View style={[s.banner, isDark && s.bannerDark]} testID="demo-banner">
-          <Ionicons name="play-circle-outline" size={16} color="#8b5cf6" />
+          <Ionicons name="play-circle-outline" size={16} color={acc.cur.accent} />
           <Text style={s.bannerText}>{t("demo.banner")}</Text>
         </View>
 
@@ -106,49 +109,51 @@ export default function DemoScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#ffffff" },
-  containerDark: { backgroundColor: "#0a0a0a" },
-  textWhite: { color: "#ffffff" },
-  metaDark: { color: "#888888" },
+function makeStyles(acc: AccentState) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: "#ffffff" },
+    containerDark: { backgroundColor: "#0a0a0a" },
+    textWhite: { color: "#ffffff" },
+    metaDark: { color: "#888888" },
 
-  banner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "#f5f3ff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e9d5ff",
-  },
-  bannerDark: { backgroundColor: "#1a1030", borderBottomColor: "#2a1a4a" },
-  bannerText: { fontSize: 13, fontWeight: "600", color: "#6d28d9", flex: 1 },
+    banner: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      backgroundColor: acc.light.tintBg,
+      borderBottomWidth: 1,
+      borderBottomColor: "#e9d5ff",
+    },
+    bannerDark: { backgroundColor: acc.dark.tintSurface, borderBottomColor: "#2a1a4a" },
+    bannerText: { fontSize: 13, fontWeight: "600", color: acc.light.primary, flex: 1 },
 
-  scrollContent: { padding: 16, paddingBottom: 40 },
+    scrollContent: { padding: 16, paddingBottom: 40 },
 
-  ctaCard: {
-    marginTop: 8,
-    padding: 20,
-    borderRadius: 16,
-    backgroundColor: "#f5f5f5",
-    alignItems: "center",
-  },
-  ctaCardDark: { backgroundColor: "#1a1a1a" },
-  ctaTitle: { fontSize: 17, fontWeight: "700", color: "#0a0a0a", textAlign: "center" },
-  ctaSubtitle: { fontSize: 13, color: "#666666", marginTop: 6, textAlign: "center", lineHeight: 18 },
-  connectButton: {
-    marginTop: 16,
-    backgroundColor: "#0a0a0a",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    width: "100%",
-    alignItems: "center",
-  },
-  connectButtonText: { color: "#ffffff", fontWeight: "600", fontSize: 15 },
-  hostedCtaLink: { marginTop: 14 },
-  hostedCtaLinkText: { fontSize: 14, fontWeight: "600", color: "#8b5cf6", textAlign: "center" },
-  setupGuideLink: { marginTop: 14 },
-  setupGuideLinkText: { fontSize: 14, fontWeight: "600", color: "#6366f1" },
-})
+    ctaCard: {
+      marginTop: 8,
+      padding: 20,
+      borderRadius: 16,
+      backgroundColor: "#f5f5f5",
+      alignItems: "center",
+    },
+    ctaCardDark: { backgroundColor: "#1a1a1a" },
+    ctaTitle: { fontSize: 17, fontWeight: "700", color: "#0a0a0a", textAlign: "center" },
+    ctaSubtitle: { fontSize: 13, color: "#666666", marginTop: 6, textAlign: "center", lineHeight: 18 },
+    connectButton: {
+      marginTop: 16,
+      backgroundColor: "#0a0a0a",
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 8,
+      width: "100%",
+      alignItems: "center",
+    },
+    connectButtonText: { color: "#ffffff", fontWeight: "600", fontSize: 15 },
+    hostedCtaLink: { marginTop: 14 },
+    hostedCtaLinkText: { fontSize: 14, fontWeight: "600", color: acc.light.accent, textAlign: "center" },
+    setupGuideLink: { marginTop: 14 },
+    setupGuideLinkText: { fontSize: 14, fontWeight: "600", color: "#6366f1" },
+  })
+}

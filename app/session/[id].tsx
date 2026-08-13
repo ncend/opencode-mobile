@@ -40,6 +40,7 @@ import { useAuth } from "../../src/stores/auth"
 import { useCatalog } from "../../src/stores/catalog"
 import { useSpeech } from "../../src/lib/speech"
 import { useKeyboardHeight } from "../../src/lib/use-keyboard-height"
+import { useAccent, type AccentState } from "../../src/lib/accents"
 
 // --- Builtin slash commands ---
 const BUILTIN_COMMANDS: SlashCommand[] = [
@@ -79,6 +80,8 @@ export default function SessionScreen() {
   const isDark = colorScheme === "dark"
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
+  const acc = useAccent()
+  const s = makeStyles(acc)
 
   const flatListRef = useRef<FlatList>(null)
   const modelSheetRef = useRef<BottomSheet>(null)
@@ -580,7 +583,7 @@ export default function SessionScreen() {
 
   // Current agent display
   const currentAgent = agents.find((a) => a.name === agent)
-  const agentColor = currentAgent?.color || "#8b5cf6"
+  const agentColor = currentAgent?.color || acc.cur.accent
   const modelLabel = model?.modelID ? model.modelID.split("/").pop() || model.modelID : "default"
 
   // Variants for current model (for reasoning effort picker)
@@ -793,7 +796,7 @@ export default function SessionScreen() {
               onPress={() => variantSheetRef.current?.expand()}
               testID="variant-chip"
             >
-              <Ionicons name="flash-outline" size={14} color={variant ? "#8b5cf6" : isDark ? "#888888" : "#666666"} />
+              <Ionicons name="flash-outline" size={14} color={variant ? acc.cur.accent : isDark ? "#888888" : "#666666"} />
               <Text style={[s.variantLabel, isDark && s.metaDark, variant && s.variantLabelActive]} numberOfLines={1}>
                 {variant ? variant.charAt(0).toUpperCase() + variant.slice(1) : t("session.toolbar.auto")}
               </Text>
@@ -885,7 +888,8 @@ export default function SessionScreen() {
   )
 }
 
-const s = StyleSheet.create({
+function makeStyles(acc: AccentState) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: "#ffffff" },
   containerDark: { backgroundColor: "#0a0a0a" },
   loading: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -985,9 +989,9 @@ const s = StyleSheet.create({
     paddingVertical: 4,
   },
   variantChipDark: { backgroundColor: "#1a1a1a" },
-  variantChipActive: { backgroundColor: "#f5f3ff" },
+  variantChipActive: { backgroundColor: acc.light.tintBg },
   variantLabel: { fontSize: 12, color: "#666666" },
-  variantLabelActive: { color: "#8b5cf6" },
+  variantLabelActive: { color: acc.light.accent },
 
   // Input
   inputContainer: {
@@ -1089,3 +1093,4 @@ const s = StyleSheet.create({
   },
   bannerAction: { color: "#93c5fd", fontSize: 13, fontWeight: "700" },
 })
+}

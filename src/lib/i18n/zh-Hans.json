@@ -68,6 +68,14 @@
       "light": "浅色",
       "dark": "深色"
     },
+    "accent": {
+      "label": "强调色",
+      "title": "选择强调色",
+      "violet": "紫色",
+      "blue": "蓝色",
+      "green": "绿色",
+      "orange": "橙色"
+    },
     "footer": {
       "appName": "OpenCode Mobile",
       "tagline": "随时随地连接您的 AI 编程助手"
@@ -276,7 +284,9 @@
       "authFailedTitle": "身份验证失败",
       "authFailedSubtitle": "{{name}} 拒绝了您的凭据。请检查用户名和密码后重新连接。",
       "checkCredentialsButton": "检查凭据",
-      "noSessions": "暂无会话"
+      "noSessions": "暂无会话",
+      "unreachableTitle": "服务器无法访问",
+      "unreachableSubtitle": "无法连接到已保存的服务器。请检查网络后重试。"
     },
     "newSessionModal": {
       "title": "新建会话",

@@ -2,6 +2,7 @@ import { useMemo, type ReactNode } from "react"
 import { View, Text, useColorScheme, Platform, type StyleProp, type ViewStyle, type TextStyle } from "react-native"
 import { useMarkdown, Renderer } from "react-native-marked"
 import { CodeBlock } from "./CodeBlock"
+import { useAccent, type AccentState } from "../../lib/accents"
 
 // react-native-marked's base Renderer hardcodes `selectable` on every plain
 // text node it produces (text/strong/em/del/heading/codespan). On Android,
@@ -58,13 +59,13 @@ class CustomRenderer extends Renderer {
 
 const mono = Platform.OS === "ios" ? "Menlo" : "monospace"
 
-const lightTheme = {
+const lightTheme = (acc: AccentState) => ({
   text: { color: "#0a0a0a", fontSize: 15, lineHeight: 22 },
   paragraph: { marginTop: 0, marginBottom: 8 },
   h1: { fontSize: 22, fontWeight: "700" as const, color: "#0a0a0a", marginBottom: 8, marginTop: 12 },
   h2: { fontSize: 19, fontWeight: "600" as const, color: "#0a0a0a", marginBottom: 6, marginTop: 10 },
   h3: { fontSize: 16, fontWeight: "600" as const, color: "#0a0a0a", marginBottom: 4, marginTop: 8 },
-  link: { color: "#8b5cf6" },
+  link: { color: acc.light.accent },
   blockquote: {
     backgroundColor: "transparent",
     borderLeftWidth: 3,
@@ -74,8 +75,8 @@ const lightTheme = {
     marginVertical: 4,
   },
   code: {
-    backgroundColor: "#e8e5f0",
-    color: "#6d28d9",
+    backgroundColor: acc.light.tintSurface,
+    color: acc.light.primary,
     fontFamily: mono,
     fontSize: 13,
     paddingHorizontal: 5,
@@ -83,8 +84,8 @@ const lightTheme = {
     borderRadius: 4,
   },
   codespan: {
-    backgroundColor: "#e8e5f0",
-    color: "#6d28d9",
+    backgroundColor: acc.light.tintSurface,
+    color: acc.light.primary,
     fontFamily: mono,
     fontSize: 13,
     paddingHorizontal: 4,
@@ -98,30 +99,34 @@ const lightTheme = {
   em: { fontStyle: "italic" as const },
   strikethrough: { textDecorationLine: "line-through" as const },
   image: { borderRadius: 8 },
-}
+})
 
-const darkTheme = {
-  ...lightTheme,
-  text: { ...lightTheme.text, color: "#e5e5e5" },
-  h1: { ...lightTheme.h1, color: "#ffffff" },
-  h2: { ...lightTheme.h2, color: "#ffffff" },
-  h3: { ...lightTheme.h3, color: "#ffffff" },
-  link: { color: "#a78bfa" },
-  blockquote: {
-    ...lightTheme.blockquote,
-    borderLeftColor: "#4a4a5a",
-  },
-  code: {
-    ...lightTheme.code,
-    backgroundColor: "#2a2040",
-    color: "#c4b5fd",
-  },
-  codespan: {
-    ...lightTheme.codespan,
-    backgroundColor: "#2a2040",
-    color: "#c4b5fd",
-  },
-  hr: { ...lightTheme.hr, backgroundColor: "#2a2a2a" },
+function theme(acc: AccentState, isDark: boolean) {
+  const light = lightTheme(acc)
+  if (!isDark) return light
+  return {
+    ...light,
+    text: { ...light.text, color: "#e5e5e5" },
+    h1: { ...light.h1, color: "#ffffff" },
+    h2: { ...light.h2, color: "#ffffff" },
+    h3: { ...light.h3, color: "#ffffff" },
+    link: { color: acc.dark.soft },
+    blockquote: {
+      ...light.blockquote,
+      borderLeftColor: "#4a4a5a",
+    },
+    code: {
+      ...light.code,
+      backgroundColor: acc.dark.tintBg,
+      color: acc.dark.softer,
+    },
+    codespan: {
+      ...light.codespan,
+      backgroundColor: acc.dark.tintBg,
+      color: acc.dark.softer,
+    },
+    hr: { ...light.hr, backgroundColor: "#2a2a2a" },
+  }
 }
 
 interface Props {
@@ -130,7 +135,8 @@ interface Props {
 
 export function Markdown({ children }: Props) {
   const isDark = useColorScheme() === "dark"
-  const theme = isDark ? darkTheme : lightTheme
+  const acc = useAccent()
+  const themeStyles = theme(acc, isDark)
 
   // A module-scope singleton renderer would share one CustomRenderer (and
   // its underlying github-slugger) across every Markdown instance and every
@@ -154,7 +160,7 @@ export function Markdown({ children }: Props) {
   // blocks directly with the useMarkdown hook instead (issue #104).
   const elements = useMarkdown(children ?? "", {
     renderer,
-    styles: theme,
+    styles: themeStyles,
     colorScheme: isDark ? "dark" : "light",
   })
 

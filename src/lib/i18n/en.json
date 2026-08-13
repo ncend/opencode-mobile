@@ -68,6 +68,14 @@
       "light": "Light",
       "dark": "Dark"
     },
+    "accent": {
+      "label": "Accent Color",
+      "title": "Choose Accent Color",
+      "violet": "Violet",
+      "blue": "Blue",
+      "green": "Green",
+      "orange": "Orange"
+    },
     "footer": {
       "appName": "OpenCode Mobile",
       "tagline": "Connect to your AI coding assistant from anywhere"
@@ -276,7 +284,9 @@
       "authFailedTitle": "Authentication Failed",
       "authFailedSubtitle": "{{name}} rejected your credentials. Check the username and password to reconnect.",
       "checkCredentialsButton": "Check Credentials",
-      "noSessions": "No sessions yet"
+      "noSessions": "No sessions yet",
+      "unreachableTitle": "Server unreachable",
+      "unreachableSubtitle": "Can't reach your saved server. Check your connection and retry."
     },
     "newSessionModal": {
       "title": "New Session",

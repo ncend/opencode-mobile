@@ -29,6 +29,7 @@ import { DirectorySwitcher, DirectoryBrowserSheet } from "../../src/components/c
 import { groupByDirectory } from "../../src/lib/session-grouping"
 import { nameOf } from "../../src/lib/path-utils"
 import { SETUP_GUIDE_URL } from "../../src/lib/links"
+import { useAccent, type AccentState } from "../../src/lib/accents"
 
 function formatTime(timestamp: number, t: (key: string, opts?: Record<string, unknown>) => string): string {
   const date = new Date(timestamp)
@@ -55,6 +56,8 @@ function SessionItem({
   onDelete: () => void
 }) {
   const { t } = useTranslation()
+  const acc = useAccent()
+  const styles = makeStyles(acc)
 
   const onPress = () => {
     router.push({
@@ -125,13 +128,15 @@ function GroupHeader({
   isDark: boolean
   onToggle: () => void
 }) {
+  const acc = useAccent()
+  const styles = makeStyles(acc)
   return (
     <TouchableOpacity
       style={[styles.groupHeader, isDark && styles.groupHeaderDark]}
       onPress={onToggle}
       activeOpacity={0.7}
     >
-      <Ionicons name="folder-outline" size={16} color={isDark ? "#8b5cf6" : "#6d28d9"} />
+      <Ionicons name="folder-outline" size={16} color={acc.cur.primary} />
       <Text style={[styles.groupHeaderText, isDark && styles.textDark]} numberOfLines={1}>
         {row.shortName}
       </Text>
@@ -160,6 +165,8 @@ export default function SessionsScreen() {
   const colorScheme = useColorScheme()
   const isDark = colorScheme === "dark"
   const { t } = useTranslation()
+  const acc = useAccent()
+  const styles = makeStyles(acc)
   const [showNewSession, setShowNewSession] = useState(false)
   const [customDir, setCustomDir] = useState("")
   const [isCreating, setIsCreating] = useState(false)
@@ -465,7 +472,7 @@ export default function SessionsScreen() {
           onPress={() => router.push("/demo")}
           testID="try-demo-button"
         >
-          <Ionicons name="play-circle-outline" size={16} color={isDark ? "#a78bfa" : "#6d28d9"} />
+          <Ionicons name="play-circle-outline" size={16} color={acc.cur.soft} />
           <Text style={[styles.tryDemoButtonText, isDark && styles.tryDemoButtonTextDark]}>
             {t("sessionsList.empty.tryDemoButton")}
           </Text>
@@ -542,7 +549,10 @@ export default function SessionsScreen() {
         <Ionicons name="swap-horizontal-outline" size={16} color={isDark ? "#666666" : "#999999"} />
       </TouchableOpacity>
 
-      {error && (
+      {/* When the list is empty the unreachable card below replaces this bar;
+          only show it while there are sessions to display (e.g. a failed
+          pull-to-refresh). */}
+      {error && sessions.length > 0 && (
         <View style={styles.errorBar}>
           <Text style={styles.errorText}>{error}</Text>
         </View>
@@ -570,6 +580,25 @@ export default function SessionsScreen() {
           isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={isDark ? "#ffffff" : "#0a0a0a"} />
+            </View>
+          ) : error ? (
+            <View style={styles.emptyList}>
+              <Ionicons name="cloud-offline-outline" size={48} color={isDark ? "#444444" : "#cccccc"} />
+              <Text style={[styles.emptyTitle, isDark && styles.textDark]}>
+                {t("sessionsList.empty.unreachableTitle")}
+              </Text>
+              <Text style={[styles.emptySubtitle, isDark && styles.metaDark]}>
+                {t("sessionsList.empty.unreachableSubtitle")}
+              </Text>
+              <TouchableOpacity
+                style={[styles.addButton, isDark && styles.addButtonDark]}
+                onPress={onRefresh}
+                testID="retry-server-button"
+              >
+                <Text style={[styles.addButtonText, isDark && styles.addButtonTextDark]}>
+                  {t("common.retry")}
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.emptyList}>
@@ -613,11 +642,11 @@ export default function SessionsScreen() {
                 onPress={() => onCreateInDirectory()}
                 disabled={isCreating}
               >
-                <Ionicons name="folder" size={20} color={isDark ? "#8b5cf6" : "#6d28d9"} />
+                <Ionicons name="folder" size={20} color={acc.cur.primary} />
                 <Text style={[styles.modalDirText, isDark && styles.textDark]} numberOfLines={2}>
                   {currentProject?.path?.absolute || activeConnection?.directory || t("sessionsList.newSessionModal.serverDefault")}
                 </Text>
-                <Ionicons name="arrow-forward-circle" size={20} color={isDark ? "#8b5cf6" : "#6d28d9"} />
+                <Ionicons name="arrow-forward-circle" size={20} color={acc.cur.primary} />
               </TouchableOpacity>
 
               {/* Recent projects */}
@@ -644,7 +673,7 @@ export default function SessionsScreen() {
                         <Ionicons
                           name="folder-outline"
                           size={18}
-                          color={isCurrent ? "#8b5cf6" : isDark ? "#888888" : "#666666"}
+                          color={isCurrent ? acc.cur.accent : isDark ? "#888888" : "#666666"}
                         />
                         <View style={styles.projectRowContent}>
                           <Text
@@ -661,7 +690,7 @@ export default function SessionsScreen() {
                             {dir}
                           </Text>
                         </View>
-                        {isCurrent && <Ionicons name="checkmark-circle" size={18} color="#8b5cf6" />}
+                        {isCurrent && <Ionicons name="checkmark-circle" size={18} color={acc.cur.accent} />}
                       </TouchableOpacity>
                     )
                   })}
@@ -711,7 +740,7 @@ export default function SessionsScreen() {
                 disabled={isCreating}
                 testID="browse-folders-button"
               >
-                <Ionicons name="folder-open-outline" size={18} color={isDark ? "#8b5cf6" : "#6d28d9"} />
+                <Ionicons name="folder-open-outline" size={18} color={acc.cur.primary} />
                 <View style={styles.projectRowContent}>
                   <Text style={[styles.projectRowName, isDark && styles.textDark]}>
                     {t("sessionsList.newSessionModal.browseFoldersLabel")}
@@ -877,7 +906,8 @@ export default function SessionsScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+function makeStyles(acc: AccentState) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#ffffff",
@@ -1065,18 +1095,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#8b5cf6",
+    borderColor: acc.light.accent,
   },
   tryDemoButtonDark: {
-    borderColor: "#a78bfa",
+    borderColor: acc.dark.soft,
   },
   tryDemoButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#6d28d9",
+    color: acc.light.primary,
   },
   tryDemoButtonTextDark: {
-    color: "#a78bfa",
+    color: acc.dark.soft,
   },
   loadingContainer: {
     flex: 1,
@@ -1167,7 +1197,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#2a2a2a",
   },
   projectRowActive: {
-    backgroundColor: "#f5f3ff",
+    backgroundColor: acc.light.tintBg,
   },
   projectRowContent: {
     flex: 1,
@@ -1178,7 +1208,7 @@ const styles = StyleSheet.create({
     color: "#0a0a0a",
   },
   projectRowNameActive: {
-    color: "#8b5cf6",
+    color: acc.light.accent,
   },
   projectRowPath: {
     fontSize: 11,
@@ -1228,19 +1258,19 @@ const styles = StyleSheet.create({
   pathChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "#e8e5f0",
+    backgroundColor: acc.light.tintSurface,
     borderRadius: 16,
   },
   pathChipDark: {
-    backgroundColor: "#2a2040",
+    backgroundColor: acc.dark.tintBg,
   },
   pathChipText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#6d28d9",
+    color: acc.light.primary,
   },
   pathChipTextDark: {
-    color: "#c4b5fd",
+    color: acc.dark.softer,
   },
   modalHint: {
     fontSize: 13,
@@ -1324,3 +1354,4 @@ const styles = StyleSheet.create({
     color: "#888888",
   },
 })
+}

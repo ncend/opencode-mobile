@@ -18,6 +18,13 @@ const MAX_RECENT_DIRS = 10
 // faster since a real server responds to /global/health in well under a
 // second; this does NOT affect the timeout used for real session traffic.
 const CONNECTION_TEST_TIMEOUT_MS = 12_000
+// Startup metadata probe (project.current / path.get). A dead/unreachable
+// saved server otherwise stalls the root spinner for the full 30s general
+// request timeout on every cold start — the app looks permanently stuck
+// loading. This probe only feeds the directory-switcher header; it doesn't
+// carry real session traffic, so it can afford to give up fast while the UI
+// renders and surfaces its own "server unreachable" retry state.
+const CONNECTION_PROBE_TIMEOUT_MS = 8_000
 
 // Cached auth so we can create directory-scoped clients without async SecureStore lookups
 interface ClientBase {
@@ -108,19 +115,12 @@ export const useConnections = create<ConnectionsState>((set, get) => ({
         const built = buildClient(active.url, active.directory, auth)
         client = built.client
         base = built.base
-        // Fetch current project info and server paths
-        try {
-          const [proj, paths] = await Promise.all([
-            client.project.current().catch(() => null),
-            client.path.get().catch(() => null),
-          ])
-          project = proj
-          home = paths?.home || null
-        } catch {
-          // Server might be offline
-        }
       }
 
+      // Resolve the loading gate from local state (SecureStore) alone so the
+      // app shell + tab bar render immediately, even when the saved server is
+      // offline. The metadata probe below runs in the background with a short
+      // timeout; a dead server can't hold the root spinner anymore.
       set({
         connections,
         activeConnection: active,
@@ -131,6 +131,24 @@ export const useConnections = create<ConnectionsState>((set, get) => ({
         recentDirectories,
         isLoading: false,
       })
+
+      // Fetch current project info and server paths (best-effort, non-blocking)
+      if (active && client) {
+        try {
+          const [proj, paths] = await Promise.all([
+            client.project.current(CONNECTION_PROBE_TIMEOUT_MS).catch(() => null),
+            client.path.get(CONNECTION_PROBE_TIMEOUT_MS).catch(() => null),
+          ])
+          project = proj
+          home = paths?.home || null
+          // Only apply if the active connection hasn't changed under us
+          if (get().activeConnection?.id === active.id) {
+            set({ currentProject: project, serverHome: home })
+          }
+        } catch {
+          // Server might be offline; the sessions screen shows a retry state
+        }
+      }
     } catch (error) {
       set({ error: "Failed to load connections", isLoading: false })
     }
@@ -172,8 +190,8 @@ export const useConnections = create<ConnectionsState>((set, get) => ({
       // immediately after the connection is added (same as setActiveConnection does).
       try {
         const [proj, paths] = await Promise.all([
-          client.project.current().catch(() => null),
-          client.path.get().catch(() => null),
+          client.project.current(CONNECTION_PROBE_TIMEOUT_MS).catch(() => null),
+          client.path.get(CONNECTION_PROBE_TIMEOUT_MS).catch(() => null),
         ])
         project = proj
         serverHome = paths?.home || null
@@ -235,8 +253,8 @@ export const useConnections = create<ConnectionsState>((set, get) => ({
 
       try {
         const [proj, paths] = await Promise.all([
-          client.project.current().catch(() => null),
-          client.path.get().catch(() => null),
+          client.project.current(CONNECTION_PROBE_TIMEOUT_MS).catch(() => null),
+          client.path.get(CONNECTION_PROBE_TIMEOUT_MS).catch(() => null),
         ])
         project = proj
         home = paths?.home || null
@@ -297,8 +315,8 @@ export const useConnections = create<ConnectionsState>((set, get) => ({
       const built = buildClient(active.url, active.directory, auth)
       try {
         const [project, paths] = await Promise.all([
-          built.client.project.current().catch(() => null),
-          built.client.path.get().catch(() => null),
+          built.client.project.current(CONNECTION_PROBE_TIMEOUT_MS).catch(() => null),
+          built.client.path.get(CONNECTION_PROBE_TIMEOUT_MS).catch(() => null),
         ])
         set({
           connections,
@@ -327,7 +345,7 @@ export const useConnections = create<ConnectionsState>((set, get) => ({
     if (!client) return
 
     try {
-      const project = await client.project.current()
+      const project = await client.project.current(CONNECTION_PROBE_TIMEOUT_MS)
       set({ currentProject: project })
     } catch {
       set({ currentProject: null })

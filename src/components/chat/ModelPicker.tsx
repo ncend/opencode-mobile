@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import BottomSheet, { BottomSheetBackdrop, BottomSheetSectionList, BottomSheetTextInput } from "@gorhom/bottom-sheet"
 import { useTranslation } from "react-i18next"
+import { useAccent, type AccentState } from "../../lib/accents"
 
 interface ModelItem {
   providerID: string
@@ -27,6 +28,8 @@ interface Props {
 
 export function ModelPicker({ providers, selected, isDark, onSelect, sheetRef }: Props) {
   const { t } = useTranslation()
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const [search, setSearch] = useState("")
 
   const sections = useMemo(() => {
@@ -134,7 +137,7 @@ export function ModelPicker({ providers, selected, isDark, onSelect, sheetRef }:
                 </Text>
                 <Text style={[s.rowProvider, isDark && s.metaDark]}>{item.providerName || item.providerID}</Text>
               </View>
-              {active && <Ionicons name="checkmark-circle" size={20} color="#8b5cf6" />}
+              {active && <Ionicons name="checkmark-circle" size={20} color={acc.cur.accent} />}
             </TouchableOpacity>
           )
         }}
@@ -145,48 +148,50 @@ export function ModelPicker({ providers, selected, isDark, onSelect, sheetRef }:
   )
 }
 
-const s = StyleSheet.create({
-  sheet: { backgroundColor: "#ffffff" },
-  sheetDark: { backgroundColor: "#1a1a1a" },
-  header: { paddingHorizontal: 16, paddingBottom: 12, gap: 10 },
-  title: { fontSize: 18, fontWeight: "700", color: "#0a0a0a" },
-  textWhite: { color: "#ffffff" },
-  search: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: "#0a0a0a",
-  },
-  searchDark: { backgroundColor: "#2a2a2a", color: "#ffffff" },
-  content: { paddingBottom: 40 },
-  sectionHeader: {
-    backgroundColor: "#f5f5f5",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  sectionHeaderDark: { backgroundColor: "#111111" },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#999999",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  metaDark: { color: "#666666" },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e5e5e5",
-  },
-  rowDark: { borderBottomColor: "#2a2a2a" },
-  rowSelected: { backgroundColor: "#f5f3ff" },
-  rowSelectedDark: { backgroundColor: "#1f1a2e" },
-  rowText: { flex: 1 },
-  rowName: { fontSize: 15, fontWeight: "500", color: "#0a0a0a" },
-  rowProvider: { fontSize: 12, color: "#999999", marginTop: 1 },
-})
+function makeStyles(acc: AccentState) {
+  return StyleSheet.create({
+    sheet: { backgroundColor: "#ffffff" },
+    sheetDark: { backgroundColor: "#1a1a1a" },
+    header: { paddingHorizontal: 16, paddingBottom: 12, gap: 10 },
+    title: { fontSize: 18, fontWeight: "700", color: "#0a0a0a" },
+    textWhite: { color: "#ffffff" },
+    search: {
+      backgroundColor: "#f5f5f5",
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      fontSize: 15,
+      color: "#0a0a0a",
+    },
+    searchDark: { backgroundColor: "#2a2a2a", color: "#ffffff" },
+    content: { paddingBottom: 40 },
+    sectionHeader: {
+      backgroundColor: "#f5f5f5",
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    sectionHeaderDark: { backgroundColor: "#111111" },
+    sectionTitle: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: "#999999",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    metaDark: { color: "#666666" },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: "#e5e5e5",
+    },
+    rowDark: { borderBottomColor: "#2a2a2a" },
+    rowSelected: { backgroundColor: acc.light.tintBg },
+    rowSelectedDark: { backgroundColor: "#1f1a2e" },
+    rowText: { flex: 1 },
+    rowName: { fontSize: 15, fontWeight: "500", color: "#0a0a0a" },
+    rowProvider: { fontSize: 12, color: "#999999", marginTop: 1 },
+  })
+}

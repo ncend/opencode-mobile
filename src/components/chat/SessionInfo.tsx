@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 import type { Message, Session } from "../../lib/sdk"
 import type { Provider } from "../../stores/catalog"
+import { useAccent } from "../../lib/accents"
 
 interface Props {
   session: Session | null
@@ -53,6 +54,7 @@ export function SessionInfo({
   onClose,
 }: Props) {
   const { t } = useTranslation()
+  const acc = useAccent()
   // Match TUI: last assistant message tokens (context window), cumulative cost
   const stats = useMemo(() => {
     let cost = 0
@@ -137,7 +139,7 @@ export function SessionInfo({
             <TokenPill label={t("chat.sessionInfo.pills.think")} value={stats.reasoning} color="#f59e0b" isDark={isDark} />
           )}
           {stats.cacheRead > 0 && (
-            <TokenPill label={t("chat.sessionInfo.pills.cacheRead")} value={stats.cacheRead} color="#8b5cf6" isDark={isDark} />
+            <TokenPill label={t("chat.sessionInfo.pills.cacheRead")} value={stats.cacheRead} color={acc.cur.accent} isDark={isDark} />
           )}
           {stats.cacheWrite > 0 && (
             <TokenPill

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetTextInput } from "@gorhom/bottom-sheet"
 import { useTranslation } from "react-i18next"
+import { useAccent, type AccentState } from "../../lib/accents"
 
 interface Props {
   sheetRef: React.RefObject<BottomSheet | null>
@@ -18,6 +19,8 @@ interface Props {
 
 export function DirectorySwitcher({ sheetRef, current, recents, serverHome, isDark, onSwitch, onBrowse }: Props) {
   const { t } = useTranslation()
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const [custom, setCustom] = useState("")
 
   const handleSelect = useCallback(
@@ -75,7 +78,7 @@ export function DirectorySwitcher({ sheetRef, current, recents, serverHome, isDa
         <Text style={[s.title, isDark && s.white]}>{t("chat.directorySwitcher.title")}</Text>
         {shortCurrent && (
           <View style={s.current}>
-            <Ionicons name="folder" size={14} color="#8b5cf6" />
+            <Ionicons name="folder" size={14} color={acc.cur.accent} />
             <Text style={s.currentText} numberOfLines={1}>
               {shortCurrent}
             </Text>
@@ -128,7 +131,7 @@ export function DirectorySwitcher({ sheetRef, current, recents, serverHome, isDa
                 onBrowse()
               }}
             >
-              <Ionicons name="folder-open-outline" size={14} color={isDark ? "#8b5cf6" : "#6d28d9"} />
+              <Ionicons name="folder-open-outline" size={14} color={acc.cur.primary} />
               <Text style={[s.chipText, isDark && s.chipTextDark]}>{t("chat.directorySwitcher.browseLabel")}</Text>
             </TouchableOpacity>
           )}
@@ -148,7 +151,7 @@ export function DirectorySwitcher({ sheetRef, current, recents, serverHome, isDa
               <Ionicons
                 name={item.dir ? "folder-outline" : "server-outline"}
                 size={20}
-                color={item.active ? "#8b5cf6" : isDark ? "#888888" : "#666666"}
+                color={item.active ? acc.cur.accent : isDark ? "#888888" : "#666666"}
               />
             </View>
             <View style={s.rowContent}>
@@ -164,7 +167,7 @@ export function DirectorySwitcher({ sheetRef, current, recents, serverHome, isDa
                 <Text style={[s.rowPath, isDark && s.dimDark]}>{t("chat.directorySwitcher.usesServerDir")}</Text>
               )}
             </View>
-            {item.active && <Ionicons name="checkmark-circle" size={20} color="#8b5cf6" />}
+            {item.active && <Ionicons name="checkmark-circle" size={20} color={acc.cur.accent} />}
           </TouchableOpacity>
         )}
         contentContainerStyle={s.list}
@@ -178,102 +181,104 @@ export function DirectorySwitcher({ sheetRef, current, recents, serverHome, isDa
   )
 }
 
-const s = StyleSheet.create({
-  sheet: { backgroundColor: "#ffffff" },
-  sheetDark: { backgroundColor: "#1a1a1a" },
-  header: { paddingHorizontal: 16, paddingBottom: 8, gap: 6 },
-  title: { fontSize: 18, fontWeight: "700", color: "#0a0a0a" },
-  white: { color: "#ffffff" },
-  current: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  currentText: {
-    fontSize: 13,
-    color: "#8b5cf6",
-    fontWeight: "500",
-  },
-  inputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    gap: 8,
-  },
-  chips: {
-    flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: "#e8e5f0",
-    borderRadius: 16,
-  },
-  chipDark: {
-    backgroundColor: "#2a2040",
-  },
-  chipBrowse: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#6d28d9",
-  },
-  chipTextDark: {
-    color: "#c4b5fd",
-  },
-  input: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: "#0a0a0a",
-  },
-  inputDark: { backgroundColor: "#2a2a2a", color: "#ffffff" },
-  goBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#0a0a0a",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  goBtnDark: { backgroundColor: "#ffffff" },
-  list: { paddingBottom: 40 },
-  section: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#999999",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
-  },
-  dimDark: { color: "#666666" },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e5e5e5",
-    gap: 12,
-  },
-  rowDark: { borderBottomColor: "#2a2a2a" },
-  rowActive: { backgroundColor: "#f5f3ff" },
-  rowIcon: { width: 28, alignItems: "center" },
-  rowContent: { flex: 1 },
-  rowLabel: { fontSize: 15, fontWeight: "500", color: "#0a0a0a" },
-  rowLabelActive: { color: "#8b5cf6" },
-  rowPath: { fontSize: 12, color: "#999999", marginTop: 1 },
-})
+function makeStyles(acc: AccentState) {
+  return StyleSheet.create({
+    sheet: { backgroundColor: "#ffffff" },
+    sheetDark: { backgroundColor: "#1a1a1a" },
+    header: { paddingHorizontal: 16, paddingBottom: 8, gap: 6 },
+    title: { fontSize: 18, fontWeight: "700", color: "#0a0a0a" },
+    white: { color: "#ffffff" },
+    current: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    currentText: {
+      fontSize: 13,
+      color: acc.light.accent,
+      fontWeight: "500",
+    },
+    inputWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingBottom: 8,
+      gap: 8,
+    },
+    chips: {
+      flexDirection: "row",
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingBottom: 12,
+    },
+    chip: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: acc.light.tintSurface,
+      borderRadius: 16,
+    },
+    chipDark: {
+      backgroundColor: acc.dark.tintBg,
+    },
+    chipBrowse: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    chipText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: acc.light.primary,
+    },
+    chipTextDark: {
+      color: acc.dark.softer,
+    },
+    input: {
+      flex: 1,
+      backgroundColor: "#f5f5f5",
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      fontSize: 15,
+      color: "#0a0a0a",
+    },
+    inputDark: { backgroundColor: "#2a2a2a", color: "#ffffff" },
+    goBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: "#0a0a0a",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    goBtnDark: { backgroundColor: "#ffffff" },
+    list: { paddingBottom: 40 },
+    section: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: "#999999",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      paddingHorizontal: 16,
+      paddingTop: 4,
+      paddingBottom: 8,
+    },
+    dimDark: { color: "#666666" },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: "#e5e5e5",
+      gap: 12,
+    },
+    rowDark: { borderBottomColor: "#2a2a2a" },
+    rowActive: { backgroundColor: acc.light.tintBg },
+    rowIcon: { width: 28, alignItems: "center" },
+    rowContent: { flex: 1 },
+    rowLabel: { fontSize: 15, fontWeight: "500", color: "#0a0a0a" },
+    rowLabelActive: { color: acc.light.accent },
+    rowPath: { fontSize: 12, color: "#999999", marginTop: 1 },
+  })
+}

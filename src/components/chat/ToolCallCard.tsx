@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 import type { Part } from "../../lib/sdk"
+import { useAccent, type AccentState } from "../../lib/accents"
 import { DiffView } from "./DiffView"
 
 const TOOL_ICONS: Record<string, string> = {
@@ -35,6 +36,8 @@ function statusColor(status: string): string {
 // --- Tool-specific detail renderers ---
 
 function BashDetail({ input, output, isDark }: { input: unknown; output: unknown; isDark: boolean }) {
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const cmd = typeof input === "object" && input !== null ? (input as Record<string, unknown>).command : undefined
   const out = typeof output === "string" ? output : undefined
   return (
@@ -59,6 +62,8 @@ function BashDetail({ input, output, isDark }: { input: unknown; output: unknown
 }
 
 function ReadDetail({ input, isDark }: { input: unknown; isDark: boolean }) {
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const file = typeof input === "object" && input !== null ? (input as Record<string, unknown>).filePath : undefined
   const offset = typeof input === "object" && input !== null ? (input as Record<string, unknown>).offset : undefined
   const limit = typeof input === "object" && input !== null ? (input as Record<string, unknown>).limit : undefined
@@ -76,6 +81,8 @@ function ReadDetail({ input, isDark }: { input: unknown; isDark: boolean }) {
 }
 
 function WriteDetail({ input, isDark }: { input: unknown; isDark: boolean }) {
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const file = typeof input === "object" && input !== null ? (input as Record<string, unknown>).filePath : undefined
   const content = typeof input === "object" && input !== null ? (input as Record<string, unknown>).content : undefined
   return (
@@ -97,6 +104,8 @@ function WriteDetail({ input, isDark }: { input: unknown; isDark: boolean }) {
 }
 
 function EditDetail({ input, output, isDark }: { input: unknown; output: unknown; isDark: boolean }) {
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const file = typeof input === "object" && input !== null ? (input as Record<string, unknown>).filePath : undefined
   const old = typeof input === "object" && input !== null ? (input as Record<string, unknown>).oldString : undefined
   const replacement =
@@ -137,6 +146,8 @@ function EditDetail({ input, output, isDark }: { input: unknown; output: unknown
 }
 
 function PatchDetail({ input, isDark }: { input: unknown; isDark: boolean }) {
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const patch = typeof input === "object" && input !== null ? (input as Record<string, unknown>).patch : undefined
   return (
     <View style={s.detailSection}>
@@ -153,6 +164,8 @@ function PatchDetail({ input, isDark }: { input: unknown; isDark: boolean }) {
 
 function GlobGrepDetail({ input, output, isDark }: { input: unknown; output: unknown; isDark: boolean }) {
   const { t } = useTranslation()
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const pattern = typeof input === "object" && input !== null ? (input as Record<string, unknown>).pattern : undefined
   const path = typeof input === "object" && input !== null ? (input as Record<string, unknown>).path : undefined
   const results = typeof output === "string" ? output : undefined
@@ -177,11 +190,13 @@ function GlobGrepDetail({ input, output, isDark }: { input: unknown; output: unk
 }
 
 function WebfetchDetail({ input, isDark }: { input: unknown; isDark: boolean }) {
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const url = typeof input === "object" && input !== null ? (input as Record<string, unknown>).url : undefined
   return (
     <View style={s.detailSection}>
       {typeof url === "string" && (
-        <Text style={[s.detailFile, isDark && s.detailFileDark, { color: "#8b5cf6" }]} selectable numberOfLines={3}>
+        <Text style={[s.detailFile, isDark && s.detailFileDark, { color: acc.cur.accent }]} selectable numberOfLines={3}>
           {url}
         </Text>
       )}
@@ -190,6 +205,8 @@ function WebfetchDetail({ input, isDark }: { input: unknown; isDark: boolean }) 
 }
 
 function TaskDetail({ input, isDark }: { input: unknown; isDark: boolean }) {
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const description =
     typeof input === "object" && input !== null ? (input as Record<string, unknown>).description : undefined
   const prompt = typeof input === "object" && input !== null ? (input as Record<string, unknown>).prompt : undefined
@@ -208,6 +225,8 @@ function TaskDetail({ input, isDark }: { input: unknown; isDark: boolean }) {
 }
 
 function TodoDetail({ input, isDark }: { input: unknown; isDark: boolean }) {
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const todos = typeof input === "object" && input !== null ? (input as Record<string, unknown>).todos : undefined
   if (!Array.isArray(todos)) return null
   return (
@@ -233,6 +252,8 @@ function TodoDetail({ input, isDark }: { input: unknown; isDark: boolean }) {
 }
 
 function GenericDetail({ input, output, isDark }: { input: unknown; output: unknown; isDark: boolean }) {
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const text =
     typeof output === "string"
       ? output
@@ -288,6 +309,8 @@ function ToolDetail({ tool, isDark }: { tool: Part; isDark: boolean }) {
 
 // --- Error display ---
 function ErrorBanner({ message, isDark }: { message: string; isDark: boolean }) {
+  const acc = useAccent()
+  const s = makeStyles(acc)
   return (
     <View style={[s.errorBanner, isDark && s.errorBannerDark]}>
       <Ionicons name="alert-circle" size={14} color="#ef4444" />
@@ -314,6 +337,8 @@ interface Props {
 
 export function ToolCallCard({ tool, isDark }: Props) {
   const { t } = useTranslation()
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const [expanded, setExpanded] = useState(false)
   const icon = (tool.tool && TOOL_ICONS[tool.tool]) || "extension-puzzle-outline"
   const status = tool.state?.status || "pending"
@@ -374,85 +399,87 @@ export function ToolCallCard({ tool, isDark }: Props) {
   )
 }
 
-const s = StyleSheet.create({
-  card: {
-    backgroundColor: "#ffffff",
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: "#f0f0f0",
-  },
-  cardDark: { backgroundColor: "#2a2a2a", borderColor: "#3a3a3a" },
-  cardError: { borderColor: "#fecaca" },
-  cardErrorDark: { borderColor: "#7f1d1d" },
+function makeStyles(acc: AccentState) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: "#ffffff",
+      padding: 10,
+      borderRadius: 8,
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: "#f0f0f0",
+    },
+    cardDark: { backgroundColor: "#2a2a2a", borderColor: "#3a3a3a" },
+    cardError: { borderColor: "#fecaca" },
+    cardErrorDark: { borderColor: "#7f1d1d" },
 
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: 6 },
-  name: { fontSize: 13, fontWeight: "500", color: "#0a0a0a", flex: 1 },
-  nameDark: { color: "#e5e5e5" },
-  elapsed: { fontSize: 11, color: "#999999" },
-  elapsedDark: { color: "#666666" },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    headerLeft: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
+    headerRight: { flexDirection: "row", alignItems: "center", gap: 6 },
+    name: { fontSize: 13, fontWeight: "500", color: "#0a0a0a", flex: 1 },
+    nameDark: { color: "#e5e5e5" },
+    elapsed: { fontSize: 11, color: "#999999" },
+    elapsedDark: { color: "#666666" },
 
-  // Error
-  errorBanner: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 6,
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: "#fef2f2",
-    borderRadius: 6,
-  },
-  errorBannerDark: { backgroundColor: "#1a0a0a" },
-  errorText: { fontSize: 12, color: "#dc2626", flex: 1, lineHeight: 18 },
+    // Error
+    errorBanner: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 6,
+      marginTop: 8,
+      padding: 8,
+      backgroundColor: "#fef2f2",
+      borderRadius: 6,
+    },
+    errorBannerDark: { backgroundColor: "#1a0a0a" },
+    errorText: { fontSize: 12, color: "#dc2626", flex: 1, lineHeight: 18 },
 
-  // Detail
-  detailScroll: { maxHeight: 300, marginTop: 8 },
-  detailSection: { gap: 4 },
-  detailFile: {
-    fontSize: 12,
-    fontFamily: mono,
-    color: "#6d28d9",
-    backgroundColor: "#f5f3ff",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  detailFileDark: { color: "#a78bfa", backgroundColor: "#1a1a2e" },
-  detailMeta: { fontSize: 12, color: "#666666", lineHeight: 18 },
-  detailMetaDark: { color: "#888888" },
+    // Detail
+    detailScroll: { maxHeight: 300, marginTop: 8 },
+    detailSection: { gap: 4 },
+    detailFile: {
+      fontSize: 12,
+      fontFamily: mono,
+      color: acc.light.primary,
+      backgroundColor: acc.light.tintBg,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      overflow: "hidden",
+    },
+    detailFileDark: { color: acc.dark.soft, backgroundColor: acc.dark.tintSurface },
+    detailMeta: { fontSize: 12, color: "#666666", lineHeight: 18 },
+    detailMetaDark: { color: "#888888" },
 
-  // Code block
-  codeBlock: {
-    backgroundColor: "#f8f8f8",
-    borderRadius: 6,
-    padding: 10,
-  },
-  codeBlockDark: { backgroundColor: "#1a1a1a" },
-  codePre: {
-    fontSize: 12,
-    fontFamily: mono,
-    color: "#0a0a0a",
-    lineHeight: 18,
-  },
-  codePteDark: { color: "#e5e5e5" },
-  codePrompt: { color: "#8b5cf6", fontWeight: "700" },
+    // Code block
+    codeBlock: {
+      backgroundColor: "#f8f8f8",
+      borderRadius: 6,
+      padding: 10,
+    },
+    codeBlockDark: { backgroundColor: "#1a1a1a" },
+    codePre: {
+      fontSize: 12,
+      fontFamily: mono,
+      color: "#0a0a0a",
+      lineHeight: 18,
+    },
+    codePteDark: { color: "#e5e5e5" },
+    codePrompt: { color: acc.light.accent, fontWeight: "700" },
 
-  // Todo
-  todoRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    paddingVertical: 3,
-  },
-  todoText: { fontSize: 13, color: "#0a0a0a", flex: 1, lineHeight: 20 },
-  todoTextDark: { color: "#e5e5e5" },
-  todoDone: { textDecorationLine: "line-through", color: "#999999" },
-})
+    // Todo
+    todoRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 8,
+      paddingVertical: 3,
+    },
+    todoText: { fontSize: 13, color: "#0a0a0a", flex: 1, lineHeight: 20 },
+    todoTextDark: { color: "#e5e5e5" },
+    todoDone: { textDecorationLine: "line-through", color: "#999999" },
+  })
+}

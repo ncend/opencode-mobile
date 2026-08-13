@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import type { Client, FileEntry } from "../../lib/sdk"
 import { parentOf, nameOf } from "../../lib/path-utils"
 import { normalizeRoots, type FileRoot } from "../../lib/file-roots"
+import { useAccent, type AccentState } from "../../lib/accents"
 
 interface Props {
   sheetRef: React.RefObject<BottomSheet | null>
@@ -29,6 +30,8 @@ export function DirectoryBrowserSheet({
   onDismiss,
 }: Props) {
   const { t } = useTranslation()
+  const acc = useAccent()
+  const s = makeStyles(acc)
   const [browseDir, setBrowseDir] = useState<string | null>(null)
   const [entries, setEntries] = useState<FileEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -197,7 +200,7 @@ export function DirectoryBrowserSheet({
             <Ionicons
               name="arrow-up-circle-outline"
               size={22}
-              color={canGoUp ? (isDark ? "#8b5cf6" : "#6d28d9") : isDark ? "#3a3a3a" : "#dddddd"}
+              color={canGoUp ? acc.cur.primary : isDark ? "#3a3a3a" : "#dddddd"}
             />
           </TouchableOpacity>
           <Text style={[s.path, isDark && s.dimDark]} numberOfLines={1} ellipsizeMode="head">
@@ -218,7 +221,7 @@ export function DirectoryBrowserSheet({
               <Ionicons
                 name={root.label === "Home" ? "home-outline" : "layers-outline"}
                 size={14}
-                color={browseDir === root.path ? "#ffffff" : isDark ? "#c4b5fd" : "#6d28d9"}
+                color={browseDir === root.path ? "#ffffff" : acc.cur.softer}
               />
               <Text
                 style={[
@@ -317,136 +320,138 @@ export function DirectoryBrowserSheet({
   )
 }
 
-const s = StyleSheet.create({
-  sheet: { backgroundColor: "#ffffff" },
-  sheetDark: { backgroundColor: "#1a1a1a" },
-  header: { paddingHorizontal: 16, paddingBottom: 8, gap: 8 },
-  title: { fontSize: 18, fontWeight: "700", color: "#0a0a0a" },
-  white: { color: "#ffffff" },
-  pathRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  path: {
-    flex: 1,
-    fontSize: 12,
-    color: "#666666",
-  },
-  dimDark: { color: "#888888" },
-  rootsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-  },
-  rootChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: "#e8e5f0",
-  },
-  rootChipDark: { backgroundColor: "#2a2040" },
-  rootChipActive: { backgroundColor: "#8b5cf6" },
-  rootChipText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#6d28d9",
-  },
-  rootChipTextDark: { color: "#c4b5fd" },
-  rootChipTextActive: { color: "#ffffff" },
-  inputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    height: 40,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    backgroundColor: "#f5f5f5",
-    color: "#0a0a0a",
-    fontSize: 14,
-  },
-  inputDark: {
-    backgroundColor: "#2a2a2a",
-    color: "#ffffff",
-  },
-  goBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: "#0a0a0a",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  goBtnDark: { backgroundColor: "#ffffff" },
-  list: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 10,
-    backgroundColor: "#f5f5f5",
-    marginBottom: 6,
-  },
-  rowDark: { backgroundColor: "#2a2a2a" },
-  rowLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#0a0a0a",
-  },
-  rowLabelDim: { color: "#999999" },
-  centerBox: {
-    paddingVertical: 24,
-    alignItems: "center",
-  },
-  errorText: {
-    fontSize: 13,
-    color: "#ef4444",
-    textAlign: "center",
-    paddingHorizontal: 16,
-  },
-  emptyText: {
-    fontSize: 13,
-    color: "#999999",
-    textAlign: "center",
-    paddingVertical: 24,
-  },
-  footer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#e5e5e5",
-  },
-  selectBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: "#0a0a0a",
-  },
-  selectBtnDark: { backgroundColor: "#ffffff" },
-  selectBtnDisabled: { opacity: 0.5 },
-  selectBtnText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-  selectBtnTextDark: { color: "#0a0a0a" },
-})
+function makeStyles(acc: AccentState) {
+  return StyleSheet.create({
+    sheet: { backgroundColor: "#ffffff" },
+    sheetDark: { backgroundColor: "#1a1a1a" },
+    header: { paddingHorizontal: 16, paddingBottom: 8, gap: 8 },
+    title: { fontSize: 18, fontWeight: "700", color: "#0a0a0a" },
+    white: { color: "#ffffff" },
+    pathRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    path: {
+      flex: 1,
+      fontSize: 12,
+      color: "#666666",
+    },
+    dimDark: { color: "#888888" },
+    rootsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingBottom: 10,
+    },
+    rootChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 14,
+      backgroundColor: acc.light.tintSurface,
+    },
+    rootChipDark: { backgroundColor: acc.dark.tintBg },
+    rootChipActive: { backgroundColor: acc.cur.accent },
+    rootChipText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: acc.light.primary,
+    },
+    rootChipTextDark: { color: acc.dark.softer },
+    rootChipTextActive: { color: "#ffffff" },
+    inputWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingBottom: 8,
+      gap: 8,
+    },
+    input: {
+      flex: 1,
+      height: 40,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      backgroundColor: "#f5f5f5",
+      color: "#0a0a0a",
+      fontSize: 14,
+    },
+    inputDark: {
+      backgroundColor: "#2a2a2a",
+      color: "#ffffff",
+    },
+    goBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: "#0a0a0a",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    goBtnDark: { backgroundColor: "#ffffff" },
+    list: {
+      paddingHorizontal: 16,
+      paddingBottom: 8,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+      borderRadius: 10,
+      backgroundColor: "#f5f5f5",
+      marginBottom: 6,
+    },
+    rowDark: { backgroundColor: "#2a2a2a" },
+    rowLabel: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: "600",
+      color: "#0a0a0a",
+    },
+    rowLabelDim: { color: "#999999" },
+    centerBox: {
+      paddingVertical: 24,
+      alignItems: "center",
+    },
+    errorText: {
+      fontSize: 13,
+      color: "#ef4444",
+      textAlign: "center",
+      paddingHorizontal: 16,
+    },
+    emptyText: {
+      fontSize: 13,
+      color: "#999999",
+      textAlign: "center",
+      paddingVertical: 24,
+    },
+    footer: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: "#e5e5e5",
+    },
+    selectBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      height: 46,
+      borderRadius: 12,
+      backgroundColor: "#0a0a0a",
+    },
+    selectBtnDark: { backgroundColor: "#ffffff" },
+    selectBtnDisabled: { opacity: 0.5 },
+    selectBtnText: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: "#ffffff",
+    },
+    selectBtnTextDark: { color: "#0a0a0a" },
+  })
+}

@@ -309,8 +309,8 @@ export function createClient(config: ClientConfig) {
     },
 
     project: {
-      list: () => request<Project[]>(config, "/project"),
-      current: () => request<Project>(config, "/project/current"),
+      list: (timeoutMs?: number) => request<Project[]>(config, "/project", {}, timeoutMs),
+      current: (timeoutMs?: number) => request<Project>(config, "/project/current", {}, timeoutMs),
     },
 
     // Server-side filesystem browsing, scoped to this client's directory
@@ -338,8 +338,13 @@ export function createClient(config: ClientConfig) {
     },
 
     path: {
-      get: () =>
-        request<{ home: string; state: string; config: string; worktree: string; directory: string }>(config, "/path"),
+      get: (timeoutMs?: number) =>
+        request<{ home: string; state: string; config: string; worktree: string; directory: string }>(
+          config,
+          "/path",
+          {},
+          timeoutMs,
+        ),
     },
 
     session: {
@@ -351,13 +356,17 @@ export function createClient(config: ClientConfig) {
       // loadSessionList; we fetch /experimental/session with no query params
       // because the server applies `limit` before we can filter to roots.
       // Falls back to the legacy /session path only on 404 (older servers).
-      list: (params?: { roots?: boolean; limit?: number; search?: string }): Promise<Session[]> =>
+      list: (params?: { roots?: boolean; limit?: number; search?: string }, timeoutMs?: number): Promise<Session[]> =>
         loadSessionList(
           {
             getExperimental: async (): Promise<Session[] | null> => {
-              const response = await fetchWithTimeout(`${config.baseUrl}/experimental/session`, {
-                headers: createHeaders(config),
-              })
+              const response = await fetchWithTimeout(
+                `${config.baseUrl}/experimental/session`,
+                {
+                  headers: createHeaders(config),
+                },
+                timeoutMs,
+              )
               // Older servers lack this route — signal fallback to legacy /session.
               if (response.status === 404) return null
               if (!response.ok) {
@@ -366,7 +375,7 @@ export function createClient(config: ClientConfig) {
               }
               return response.json()
             },
-            getLegacy: (query) => request<Session[]>(config, `/session${query}`),
+            getLegacy: (query) => request<Session[]>(config, `/session${query}`, {}, timeoutMs),
           },
           params,
         ),

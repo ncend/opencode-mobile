@@ -5,6 +5,7 @@ import { type Category, defaultPreferences } from "../lib/notifications"
 import { clampPageSize, mergeStoredSettings } from "../lib/settings-merge"
 import { setAppLocale } from "../lib/i18n/config"
 import type { LocalePreference } from "../lib/i18n/locale-resolve"
+import type { AccentName } from "../lib/accents"
 
 const SETTINGS_KEY = "opencode_settings"
 
@@ -20,6 +21,7 @@ interface Settings {
   notifications: Record<Category, boolean>
   locale: LocalePreference
   theme: ThemePreference
+  accent: AccentName
 }
 
 const DEFAULTS: Settings = {
@@ -27,6 +29,7 @@ const DEFAULTS: Settings = {
   notifications: { ...defaultPreferences },
   locale: "system",
   theme: "system",
+  accent: "violet",
 }
 
 interface SettingsState extends Settings {
@@ -36,10 +39,17 @@ interface SettingsState extends Settings {
   setNotification: (category: Category, enabled: boolean) => Promise<void>
   setLocale: (locale: LocalePreference) => Promise<void>
   setTheme: (theme: ThemePreference) => Promise<void>
+  setAccent: (accent: AccentName) => Promise<void>
 }
 
 function snapshot(get: () => SettingsState): Settings {
-  return { pageSize: get().pageSize, notifications: get().notifications, locale: get().locale, theme: get().theme }
+  return {
+    pageSize: get().pageSize,
+    notifications: get().notifications,
+    locale: get().locale,
+    theme: get().theme,
+    accent: get().accent,
+  }
 }
 
 async function persist(settings: Settings) {
@@ -86,5 +96,10 @@ export const useSettings = create<SettingsState>((set, get) => ({
     set({ theme })
     applyAppTheme(theme) // applies immediately, re-renders via useColorScheme
     await persist({ ...snapshot(get), theme })
+  },
+
+  setAccent: async (accent) => {
+    set({ accent }) // re-renders via useAccent
+    await persist({ ...snapshot(get), accent })
   },
 }))

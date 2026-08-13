@@ -5,6 +5,7 @@ import { Markdown } from "../markdown"
 import { ToolCallCard } from "./ToolCallCard"
 import { ReasoningBlock } from "./ReasoningBlock"
 import type { Message, Part } from "../../lib/sdk"
+import { useAccent, type AccentState } from "../../lib/accents"
 
 const SCREEN_WIDTH = Dimensions.get("window").width
 
@@ -27,6 +28,8 @@ interface Props {
 export const MessageBubble = memo(
   function MessageBubble({ message, parts, isDark, onLongPress }: Props) {
     const isUser = message.role === "user"
+    const acc = useAccent()
+    const s = makeStyles(acc)
 
     const textParts = parts.filter((p) => p.type === "text")
     const reasoningParts = parts.filter((p) => p.type === "reasoning")
@@ -53,7 +56,7 @@ export const MessageBubble = memo(
           <Ionicons
             name={isUser ? "person" : "sparkles"}
             size={14}
-            color={isUser ? (isDark ? "#ffffff" : "#0a0a0a") : "#8b5cf6"}
+            color={isUser ? (isDark ? "#ffffff" : "#0a0a0a") : acc.cur.accent}
           />
           <Text style={[s.role, isUser && s.roleUser, isDark && s.textWhite]}>{isUser ? "You" : "Assistant"}</Text>
           {message.model && <Text style={[s.modelTag, isDark && s.modelTagDark]}>{message.model.modelID}</Text>}
@@ -129,45 +132,47 @@ export const MessageBubble = memo(
   },
 )
 
-const s = StyleSheet.create({
-  bubble: { marginBottom: 16, padding: 12, borderRadius: 12, maxWidth: "100%" },
-  user: { backgroundColor: "#f5f5f5", marginLeft: 32 },
-  userDark: { backgroundColor: "#1a1a1a" },
-  assistant: { backgroundColor: "#f0f0ff" },
-  assistantDark: { backgroundColor: "#1a1a2e" },
+function makeStyles(acc: AccentState) {
+  return StyleSheet.create({
+    bubble: { marginBottom: 16, padding: 12, borderRadius: 12, maxWidth: "100%" },
+    user: { backgroundColor: "#f5f5f5", marginLeft: 32 },
+    userDark: { backgroundColor: "#1a1a1a" },
+    assistant: { backgroundColor: "#f0f0ff" },
+    assistantDark: { backgroundColor: acc.dark.tintSurface },
 
-  header: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
-  role: { fontSize: 13, fontWeight: "600", color: "#666666" },
-  roleUser: { color: "#0a0a0a" },
-  textWhite: { color: "#ffffff" },
+    header: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
+    role: { fontSize: 13, fontWeight: "600", color: "#666666" },
+    roleUser: { color: "#0a0a0a" },
+    textWhite: { color: "#ffffff" },
 
-  modelTag: {
-    fontSize: 11,
-    color: "#999999",
-    backgroundColor: "#e5e5e5",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  modelTagDark: { backgroundColor: "#2a2a2a", color: "#888888" },
+    modelTag: {
+      fontSize: 11,
+      color: "#999999",
+      backgroundColor: "#e5e5e5",
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      overflow: "hidden",
+    },
+    modelTagDark: { backgroundColor: "#2a2a2a", color: "#888888" },
 
-  messageText: { fontSize: 15, lineHeight: 22, color: "#0a0a0a" },
-  markdownWrap: { marginHorizontal: -4 },
+    messageText: { fontSize: 15, lineHeight: 22, color: "#0a0a0a" },
+    markdownWrap: { marginHorizontal: -4 },
 
-  tokens: { fontSize: 11, color: "#999999", marginTop: 8 },
-  tokensDark: { color: "#666666" },
+    tokens: { fontSize: 11, color: "#999999", marginTop: 8 },
+    tokensDark: { color: "#666666" },
 
-  // Images
-  imageScroll: { marginBottom: 8 },
-  imageRow: { gap: 8 },
-  imageWrap: { alignItems: "center" },
-  attachedImage: {
-    width: Math.min(200, SCREEN_WIDTH * 0.5),
-    height: Math.min(200, SCREEN_WIDTH * 0.5),
-    borderRadius: 8,
-    backgroundColor: "#e5e5e5",
-  },
-  imageLabel: { fontSize: 10, color: "#666666", marginTop: 2, maxWidth: 200 },
-  imageLabelDark: { color: "#888888" },
-})
+    // Images
+    imageScroll: { marginBottom: 8 },
+    imageRow: { gap: 8 },
+    imageWrap: { alignItems: "center" },
+    attachedImage: {
+      width: Math.min(200, SCREEN_WIDTH * 0.5),
+      height: Math.min(200, SCREEN_WIDTH * 0.5),
+      borderRadius: 8,
+      backgroundColor: "#e5e5e5",
+    },
+    imageLabel: { fontSize: 10, color: "#666666", marginTop: 2, maxWidth: 200 },
+    imageLabelDark: { color: "#888888" },
+  })
+}

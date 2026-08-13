@@ -8,6 +8,13 @@ import { extractPromptFromParts, type PromptFromParts } from "../lib/prompt-from
 import { mergeIncomingMessage } from "../lib/message-merge"
 import { isColdSessionLoad, isLiveEventForSession } from "../lib/session-load-reconcile"
 
+// Fast-fail bound for the sessions list on app start/open. A dead or
+// unreachable saved server otherwise holds the sessions tab's spinner for the
+// full 30s general request timeout before surfacing any error — reading as a
+// stuck loader. The list itself is cheap on a live server (well under a
+// second), so a short bound only affects the offline case we want to fail fast.
+const SESSION_LIST_TIMEOUT_MS = 10_000
+
 // Helper to convert API response to our internal format
 function parseMessages(response: MessageWithParts[]): { messages: Message[]; parts: Record<string, Part[]> } {
   const messages: Message[] = []
@@ -111,7 +118,7 @@ export const useSessions = create<SessionsState>((set, get) => ({
       set({ isLoading: true, error: null })
       // A directory-less list includes sessions across projects. Each row carries
       // its own directory into the session route so subsequent operations stay scoped.
-      const sessions = await client.session.list({ roots: true, limit: 50 })
+      const sessions = await client.session.list({ roots: true, limit: 50 }, SESSION_LIST_TIMEOUT_MS)
       set({ sessions, isLoading: false })
     } catch (error) {
       set({ error: "Failed to load sessions", isLoading: false })

@@ -9,11 +9,13 @@ import {
   useColorScheme,
   Linking,
   Alert,
+  Modal,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "../../src/stores/auth"
 import { useSettings, type ThemePreference } from "../../src/stores/settings"
+import { ACCENTS, useAccent, type AccentName } from "../../src/lib/accents"
 import {
   categories,
   categoryMeta,
@@ -69,15 +71,86 @@ function SettingSection({ title, children, isDark }: { title: string; children: 
   )
 }
 
+interface Option {
+  value: string
+  label: string
+  /** Optional swatch color rendered next to the label (e.g. accent preview). */
+  swatch?: string
+}
+
+// Dropdown-style picker sheet. Replaces the Android Alert (which truncates
+// when there are 3+ choices + cancel) with a scrollable list that shows every
+// option, the current selection checkmarked, plus preview swatches for accents.
+function OptionSheet({
+  visible,
+  title,
+  options,
+  selected,
+  isDark,
+  onSelect,
+  onClose,
+}: {
+  visible: boolean
+  title: string
+  options: Option[]
+  selected: string
+  isDark: boolean
+  onSelect: (value: string) => void
+  onClose: () => void
+}) {
+  const { cur } = useAccent()
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={[styles.sheet, isDark && styles.sheetDark]}>
+          <Text style={[styles.sheetTitle, isDark && styles.textDark]}>{title}</Text>
+          <View style={[styles.sheetBody, isDark && styles.sheetBodyDark]}>
+            <ScrollView>
+              {options.map((option) => {
+                const isSelected = option.value === selected
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.sheetOption, isDark && styles.sheetOptionDark]}
+                    onPress={() => {
+                      onSelect(option.value)
+                      onClose()
+                    }}
+                    testID={`option-${option.value}`}
+                  >
+                    {option.swatch && <View style={[styles.optionSwatch, { backgroundColor: option.swatch }]} />}
+                    <Text
+                      style={[
+                        styles.sheetOptionText,
+                        isDark && styles.textDark,
+                        isSelected && { color: cur.accent },
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                    {isSelected && <Ionicons name="checkmark" size={20} color={cur.accent} />}
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  )
+}
+
 export default function SettingsScreen() {
   const colorScheme = useColorScheme()
   const isDark = colorScheme === "dark"
   const { t } = useTranslation()
 
   const { settings, hasBiometrics, updateSettings, lock } = useAuth()
-  const { notifications, setNotification, locale, setLocale, theme, setTheme } = useSettings()
+  const { notifications, setNotification, locale, setLocale, theme, setTheme, accent, setAccent } = useSettings()
   const [osGranted, setOsGranted] = useState<boolean | null>(null)
   const [telemetryUpdating, setTelemetryUpdating] = useState(false)
+  // Which picker sheet is open: theme | accent | null
+  const [picker, setPicker] = useState<"theme" | "accent" | "language" | null>(null)
 
   // Telemetry consent: hasTelemetryConsent() returns null (unknown), true, or false.
   // We initialise local state from in-memory value; updates call setTelemetryConsent().
@@ -128,29 +201,46 @@ export default function SettingsScreen() {
     "zh-Hans": t("settings.language.zhHans"),
   }
 
+  const localeOptions: Option[] = (["system", "en", "zh-Hans"] as LocalePreference[]).map((value) => ({
+    value,
+    label: localeLabels[value],
+  }))
+
   const themeLabels: Record<ThemePreference, string> = {
     system: t("settings.theme.system"),
     light: t("settings.theme.light"),
     dark: t("settings.theme.dark"),
   }
 
+  const themeOptions: Option[] = (["system", "light", "dark"] as ThemePreference[]).map((value) => ({
+    value,
+    label: themeLabels[value],
+  }))
+
+  const accentLabels: Record<AccentName, string> = {
+    violet: t("settings.accent.violet"),
+    blue: t("settings.accent.blue"),
+    green: t("settings.accent.green"),
+    orange: t("settings.accent.orange"),
+  }
+
+  const accentOptions: Option[] = (Object.keys(ACCENTS) as AccentName[]).map((value) => ({
+    value,
+    label: accentLabels[value],
+    swatch: ACCENTS[value].dark.accent,
+  }))
+
   const handleLanguagePress = useCallback(() => {
-    Alert.alert(t("settings.language.title"), undefined, [
-      { text: localeLabels.system, onPress: () => setLocale("system") },
-      { text: localeLabels.en, onPress: () => setLocale("en") },
-      { text: localeLabels["zh-Hans"], onPress: () => setLocale("zh-Hans") },
-      { text: t("common.cancel"), style: "cancel" },
-    ])
-  }, [t, setLocale, localeLabels])
+    setPicker("language")
+  }, [])
 
   const handleThemePress = useCallback(() => {
-    Alert.alert(t("settings.theme.title"), undefined, [
-      { text: themeLabels.system, onPress: () => setTheme("system") },
-      { text: themeLabels.light, onPress: () => setTheme("light") },
-      { text: themeLabels.dark, onPress: () => setTheme("dark") },
-      { text: t("common.cancel"), style: "cancel" },
-    ])
-  }, [t, setTheme, themeLabels])
+    setPicker("theme")
+  }, [])
+
+  const handleAccentPress = useCallback(() => {
+    setPicker("accent")
+  }, [])
 
   return (
     <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.content}>
@@ -263,6 +353,14 @@ export default function SettingsScreen() {
           right={<Ionicons name="chevron-forward" size={20} color={isDark ? "#666666" : "#999999"} />}
         />
         <SettingRow
+          icon="color-palette"
+          label={t("settings.accent.label")}
+          description={accentLabels[accent]}
+          isDark={isDark}
+          onPress={handleAccentPress}
+          right={<Ionicons name="chevron-forward" size={20} color={isDark ? "#666666" : "#999999"} />}
+        />
+        <SettingRow
           icon="language"
           label={t("settings.language.label")}
           description={localeLabels[locale]}
@@ -293,6 +391,34 @@ export default function SettingsScreen() {
         <Text style={[styles.footerText, isDark && styles.metaDark]}>{t("settings.footer.appName")}</Text>
         <Text style={[styles.footerText, isDark && styles.metaDark]}>{t("settings.footer.tagline")}</Text>
       </View>
+
+      <OptionSheet
+        visible={picker === "theme"}
+        title={t("settings.theme.title")}
+        options={themeOptions}
+        selected={theme}
+        isDark={isDark}
+        onSelect={(value) => setTheme(value as ThemePreference)}
+        onClose={() => setPicker(null)}
+      />
+      <OptionSheet
+        visible={picker === "accent"}
+        title={t("settings.accent.title")}
+        options={accentOptions}
+        selected={accent}
+        isDark={isDark}
+        onSelect={(value) => setAccent(value as AccentName)}
+        onClose={() => setPicker(null)}
+      />
+      <OptionSheet
+        visible={picker === "language"}
+        title={t("settings.language.title")}
+        options={localeOptions}
+        selected={locale}
+        isDark={isDark}
+        onSelect={(value) => setLocale(value as LocalePreference)}
+        onClose={() => setPicker(null)}
+      />
     </ScrollView>
   )
 }
@@ -381,5 +507,57 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#999999",
     textAlign: "center",
+  },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  sheet: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    paddingBottom: 12,
+    paddingTop: 12,
+    width: "100%",
+    maxWidth: 420,
+    maxHeight: "70%",
+  },
+  sheetDark: {
+    backgroundColor: "#1a1a1a",
+  },
+  sheetTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#0a0a0a",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  sheetBody: {
+    paddingHorizontal: 16,
+  },
+  sheetBodyDark: {},
+  sheetOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  sheetOptionDark: {
+    borderBottomColor: "#2a2a2a",
+  },
+  sheetOptionText: {
+    flex: 1,
+    fontSize: 16,
+    color: "#0a0a0a",
+  },
+  optionSwatch: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 12,
   },
 })
