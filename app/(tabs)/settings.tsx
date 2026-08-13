@@ -11,10 +11,11 @@ import {
   Alert,
   Modal,
 } from "react-native"
+import Slider from "@react-native-community/slider"
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "../../src/stores/auth"
-import { useSettings, type ThemePreference } from "../../src/stores/settings"
+import { useSettings, FONT_SCALE_MIN, FONT_SCALE_MAX, type ThemePreference } from "../../src/stores/settings"
 import { ACCENTS, useAccent, type AccentName } from "../../src/lib/accents"
 import {
   categories,
@@ -140,17 +141,84 @@ function OptionSheet({
   )
 }
 
+function FontSizeSheet({
+  visible,
+  initialValue,
+  isDark,
+  onConfirm,
+  onClose,
+}: {
+  visible: boolean
+  initialValue: number
+  isDark: boolean
+  onConfirm: (percent: number) => void
+  onClose: () => void
+}) {
+  const { cur } = useAccent()
+  const { t } = useTranslation()
+  const [draft, setDraft] = useState(initialValue)
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={[styles.sheet, isDark && styles.sheetDark]}>
+          <Text style={[styles.sheetTitle, isDark && styles.textDark]}>{t("settings.fontSize.title")}</Text>
+          <Text style={[styles.fontSizeValue, { color: cur.accent }]} testID="font-size-value">
+            {draft}%
+          </Text>
+          <Slider
+            style={styles.fontSizeSlider}
+            minimumValue={FONT_SCALE_MIN}
+            maximumValue={FONT_SCALE_MAX}
+            step={5}
+            value={draft}
+            minimumTrackTintColor={cur.accent}
+            maximumTrackTintColor={isDark ? "#3a3a3a" : "#d4d4d4"}
+            thumbTintColor={cur.accent}
+            onValueChange={(v) => setDraft(Math.round(v))}
+            testID="font-size-slider"
+          />
+          <View style={styles.fontSizeRange}>
+            <Text style={[styles.fontSizeRangeText, isDark && styles.metaDark]}>{`${FONT_SCALE_MIN}%`}</Text>
+            <Text style={[styles.fontSizeRangeText, isDark && styles.metaDark]}>{`${FONT_SCALE_MAX}%`}</Text>
+          </View>
+          <View style={styles.fontSizeActions}>
+            <TouchableOpacity
+              style={[styles.fontSizeCancelBtn, isDark && styles.fontSizeCancelBtnDark]}
+              onPress={onClose}
+              testID="font-size-cancel"
+            >
+              <Text style={[styles.fontSizeCancelText, isDark && styles.textDark]}>{t("common.cancel")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.fontSizeConfirmBtn, { backgroundColor: cur.accent }]}
+              onPress={() => {
+                onConfirm(draft)
+                onClose()
+              }}
+              testID="font-size-confirm"
+            >
+              <Text style={styles.fontSizeConfirmText}>{t("common.confirm")}</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  )
+}
+
 export default function SettingsScreen() {
   const colorScheme = useColorScheme()
   const isDark = colorScheme === "dark"
   const { t } = useTranslation()
 
   const { settings, hasBiometrics, updateSettings, lock } = useAuth()
-  const { notifications, setNotification, locale, setLocale, theme, setTheme, accent, setAccent } = useSettings()
+  const { notifications, setNotification, locale, setLocale, theme, setTheme, accent, setAccent, fontSize, setFontSize } =
+    useSettings()
   const [osGranted, setOsGranted] = useState<boolean | null>(null)
   const [telemetryUpdating, setTelemetryUpdating] = useState(false)
-  // Which picker sheet is open: theme | accent | null
-  const [picker, setPicker] = useState<"theme" | "accent" | "language" | null>(null)
+  // Which picker sheet is open: theme | accent | language | fontSize | null
+  const [picker, setPicker] = useState<"theme" | "accent" | "language" | "fontSize" | null>(null)
 
   // Telemetry consent: hasTelemetryConsent() returns null (unknown), true, or false.
   // We initialise local state from in-memory value; updates call setTelemetryConsent().
@@ -240,6 +308,10 @@ export default function SettingsScreen() {
 
   const handleAccentPress = useCallback(() => {
     setPicker("accent")
+  }, [])
+
+  const handleFontSizePress = useCallback(() => {
+    setPicker("fontSize")
   }, [])
 
   return (
@@ -361,6 +433,14 @@ export default function SettingsScreen() {
           right={<Ionicons name="chevron-forward" size={20} color={isDark ? "#666666" : "#999999"} />}
         />
         <SettingRow
+          icon="text"
+          label={t("settings.fontSize.label")}
+          description={`${fontSize}%`}
+          isDark={isDark}
+          onPress={handleFontSizePress}
+          right={<Ionicons name="chevron-forward" size={20} color={isDark ? "#666666" : "#999999"} />}
+        />
+        <SettingRow
           icon="language"
           label={t("settings.language.label")}
           description={localeLabels[locale]}
@@ -419,6 +499,15 @@ export default function SettingsScreen() {
         onSelect={(value) => setLocale(value as LocalePreference)}
         onClose={() => setPicker(null)}
       />
+      {picker === "fontSize" && (
+        <FontSizeSheet
+          visible
+          initialValue={fontSize}
+          isDark={isDark}
+          onConfirm={(percent) => setFontSize(percent)}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </ScrollView>
   )
 }
@@ -559,5 +648,63 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     marginRight: 12,
+  },
+
+  // Font size slider sheet
+  fontSizeValue: {
+    fontSize: 34,
+    fontWeight: "700",
+    textAlign: "center",
+    paddingVertical: 8,
+  },
+  fontSizeSlider: {
+    width: "100%",
+    height: 40,
+    paddingHorizontal: 8,
+  },
+  fontSizeRange: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  fontSizeRangeText: {
+    fontSize: 12,
+    color: "#999999",
+  },
+  fontSizeActions: {
+    flexDirection: "row",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+  },
+  fontSizeCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+  },
+  fontSizeCancelBtnDark: {
+    borderColor: "#3a3a3a",
+    backgroundColor: "#1a1a1a",
+  },
+  fontSizeCancelText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#0a0a0a",
+  },
+  fontSizeConfirmBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  fontSizeConfirmText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#ffffff",
   },
 })

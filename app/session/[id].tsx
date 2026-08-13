@@ -39,6 +39,7 @@ import { useEvents, refreshPending } from "../../src/stores/events"
 import { useConnections } from "../../src/stores/connections"
 import { useAuth } from "../../src/stores/auth"
 import { useCatalog } from "../../src/stores/catalog"
+import { useSettings } from "../../src/stores/settings"
 import { useSpeech } from "../../src/lib/speech"
 import { useKeyboardHeight } from "../../src/lib/use-keyboard-height"
 import { useAccent, type AccentState } from "../../src/lib/accents"
@@ -111,6 +112,8 @@ export default function SessionScreen() {
 
   const { authenticateForMessage } = useAuth()
   const { client, clientForDirectory } = useConnections()
+  // Message font scale (percentage, e.g. 120 = 120%); applied to every chat font size
+  const fontScale = useSettings((s) => s.fontSize)
 
   // Use directory-aware client for sessions that belong to a project other than the active one
   const sessionClient = useMemo(
@@ -706,6 +709,7 @@ export default function SessionScreen() {
                   message={item.message}
                   parts={item.parts}
                   isDark={isDark}
+                  fontSize={Math.round(15 * (fontScale / 100))}
                   onLongPress={handleMessageLongPress}
                 />
               )}

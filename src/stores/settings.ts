@@ -11,6 +11,10 @@ const SETTINGS_KEY = "opencode_settings"
 
 export type ThemePreference = "system" | "light" | "dark"
 
+/** Message font size as a percentage of the base size (100 = 100%). Slider range. */
+export const FONT_SCALE_MIN = 50
+export const FONT_SCALE_MAX = 150
+
 /** Force the app-wide color scheme, or follow the system when preference is "system". */
 export function applyAppTheme(preference: ThemePreference): void {
   Appearance.setColorScheme(preference === "system" ? null : preference)
@@ -22,6 +26,8 @@ interface Settings {
   locale: LocalePreference
   theme: ThemePreference
   accent: AccentName
+  /** Message font size as a percentage of the base size (e.g. 120 = 120%). */
+  fontSize: number
 }
 
 const DEFAULTS: Settings = {
@@ -30,6 +36,7 @@ const DEFAULTS: Settings = {
   locale: "system",
   theme: "system",
   accent: "violet",
+  fontSize: 100,
 }
 
 interface SettingsState extends Settings {
@@ -40,6 +47,7 @@ interface SettingsState extends Settings {
   setLocale: (locale: LocalePreference) => Promise<void>
   setTheme: (theme: ThemePreference) => Promise<void>
   setAccent: (accent: AccentName) => Promise<void>
+  setFontSize: (percent: number) => Promise<void>
 }
 
 function snapshot(get: () => SettingsState): Settings {
@@ -49,6 +57,7 @@ function snapshot(get: () => SettingsState): Settings {
     locale: get().locale,
     theme: get().theme,
     accent: get().accent,
+    fontSize: get().fontSize,
   }
 }
 
@@ -101,5 +110,11 @@ export const useSettings = create<SettingsState>((set, get) => ({
   setAccent: async (accent) => {
     set({ accent }) // re-renders via useAccent
     await persist({ ...snapshot(get), accent })
+  },
+
+  setFontSize: async (percent) => {
+    const clamped = Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, Math.round(percent)))
+    set({ fontSize: clamped }) // re-renders message/markdown fonts
+    await persist({ ...snapshot(get), fontSize: clamped })
   },
 }))

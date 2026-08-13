@@ -1,7 +1,8 @@
 {
   "common": {
     "cancel": "Cancel",
-    "ok": "OK",
+      "confirm": "Confirm",
+      "ok": "OK",
     "error": "Error",
     "delete": "Delete",
     "retry": "Retry",
@@ -60,6 +61,10 @@
       "system": "System Default",
       "en": "English",
       "zhHans": "Simplified Chinese"
+    },
+    "fontSize": {
+      "label": "Font Size",
+      "title": "Message Font Size"
     },
     "theme": {
       "label": "Theme",

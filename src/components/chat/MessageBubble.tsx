@@ -17,6 +17,8 @@ interface Props {
   message: Message
   parts: Part[]
   isDark: boolean
+  /** Message body font size in points. Defaults to 15 (original UI size). */
+  fontSize?: number
   // Only wired up for user messages — long-press opens the "Edit message" /
   // revert action sheet. Identified by messageID (not a closure over parts)
   // so it stays correct even if the memo below bails on a stale render.
@@ -26,7 +28,7 @@ interface Props {
 // TODO: Replace with streamdown-rn once React 19 types PR lands - it has
 // built-in block-level memoization that eliminates re-renders for stable blocks
 export const MessageBubble = memo(
-  function MessageBubble({ message, parts, isDark, onLongPress }: Props) {
+  function MessageBubble({ message, parts, isDark, fontSize = 15, onLongPress }: Props) {
     const isUser = message.role === "user"
     const acc = useAccent()
     const s = makeStyles(acc)
@@ -90,12 +92,12 @@ export const MessageBubble = memo(
         {/* Message text */}
         {text.length > 0 &&
           (isUser ? (
-            <Text style={[s.messageText, isDark && s.textWhite]} selectable>
+            <Text style={[s.messageText, { fontSize, lineHeight: Math.round(fontSize * 1.47) }, isDark && s.textWhite]} selectable>
               {text}
             </Text>
           ) : (
             <View style={s.markdownWrap}>
-              <Markdown>{text}</Markdown>
+              <Markdown fontSize={fontSize}>{text}</Markdown>
             </View>
           ))}
 
@@ -123,6 +125,7 @@ export const MessageBubble = memo(
     // unchanged (completed) messages during other messages' streaming.
     if (prev.message !== next.message) return false
     if (prev.isDark !== next.isDark) return false
+    if (prev.fontSize !== next.fontSize) return false
     if (prev.onLongPress !== next.onLongPress) return false
     if (prev.parts.length !== next.parts.length) return false
     for (let i = 0; i < prev.parts.length; i++) {

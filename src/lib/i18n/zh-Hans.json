@@ -1,7 +1,8 @@
 {
   "common": {
     "cancel": "取消",
-    "ok": "确定",
+      "confirm": "确认",
+      "ok": "确定",
     "error": "错误",
     "delete": "删除",
     "retry": "重试",
@@ -60,6 +61,10 @@
       "system": "跟随系统",
       "en": "English",
       "zhHans": "简体中文"
+    },
+    "fontSize": {
+      "label": "字体大小",
+      "title": "消息字体大小"
     },
     "theme": {
       "label": "主题",

@@ -16,6 +16,13 @@ import { useAccent, type AccentState } from "../../lib/accents"
 // this. Code content is still copyable via CodeBlock's explicit Copy
 // button, so dropping `selectable` on plain text costs little.
 class CustomRenderer extends Renderer {
+  // react-native-marked parses sibling inline tokens (bold/italic/etc. inside a
+  // paragraph) with an EMPTY style object, so the library's own default
+  // emphasis style (fontSize 16/lineHeight 24, hardcoded in its theme
+  // flattening) would win over our scaled base text. We therefore provide
+  // `strong`/`em`/`strikethrough` theme keys carrying the scaled base text
+  // style plus the modifier (see lightTheme) — the library merges those last,
+  // so emphasis text scales with the font-size setting like plain text.
   private plainText(children: string | ReactNode[], styles?: StyleProp<TextStyle>): ReactNode {
     return (
       <Text key={this.getKey()} style={styles}>
@@ -36,18 +43,6 @@ class CustomRenderer extends Renderer {
     return this.plainText(text, styles)
   }
 
-  strong(children: string | ReactNode[], styles?: TextStyle): ReactNode {
-    return this.plainText(children, styles)
-  }
-
-  em(children: string | ReactNode[], styles?: TextStyle): ReactNode {
-    return this.plainText(children, styles)
-  }
-
-  del(children: string | ReactNode[], styles?: TextStyle): ReactNode {
-    return this.plainText(children, styles)
-  }
-
   heading(text: string | ReactNode[], styles?: TextStyle): ReactNode {
     return this.plainText(text, styles)
   }
@@ -59,50 +54,63 @@ class CustomRenderer extends Renderer {
 
 const mono = Platform.OS === "ios" ? "Menlo" : "monospace"
 
-const lightTheme = (acc: AccentState) => ({
-  text: { color: "#0a0a0a", fontSize: 15, lineHeight: 22 },
-  paragraph: { marginTop: 0, marginBottom: 8 },
-  h1: { fontSize: 22, fontWeight: "700" as const, color: "#0a0a0a", marginBottom: 8, marginTop: 12 },
-  h2: { fontSize: 19, fontWeight: "600" as const, color: "#0a0a0a", marginBottom: 6, marginTop: 10 },
-  h3: { fontSize: 16, fontWeight: "600" as const, color: "#0a0a0a", marginBottom: 4, marginTop: 8 },
-  link: { color: acc.light.accent },
-  blockquote: {
-    backgroundColor: "transparent",
-    borderLeftWidth: 3,
-    borderLeftColor: "#d1d5db",
-    paddingLeft: 12,
-    paddingVertical: 2,
-    marginVertical: 4,
-  },
-  code: {
-    backgroundColor: acc.light.tintSurface,
-    color: acc.light.primary,
-    fontFamily: mono,
-    fontSize: 13,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  codespan: {
-    backgroundColor: acc.light.tintSurface,
-    color: acc.light.primary,
-    fontFamily: mono,
-    fontSize: 13,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 3,
-  },
-  list: { marginBottom: 4 },
-  li: { marginBottom: 2 },
-  hr: { backgroundColor: "#e5e5e5", height: 1, marginVertical: 12 },
-  strong: { fontWeight: "700" as const },
-  em: { fontStyle: "italic" as const },
-  strikethrough: { textDecorationLine: "line-through" as const },
-  image: { borderRadius: 8 },
-})
+/** Base message font size the markdown scale is derived from (matches original UI). */
+const BASE_SIZE = 15
 
-function theme(acc: AccentState, isDark: boolean) {
-  const light = lightTheme(acc)
+function scaled(base: number, f: number): number {
+  return Math.round(base * f)
+}
+
+function lightTheme(acc: AccentState, f: number) {
+  const base = { color: "#0a0a0a", fontSize: scaled(BASE_SIZE, f), lineHeight: scaled(22, f) }
+  return {
+    text: { ...base },
+    paragraph: { marginTop: 0, marginBottom: 8 },
+    h1: { fontSize: scaled(22, f), fontWeight: "700" as const, color: "#0a0a0a", marginBottom: 8, marginTop: 12 },
+    h2: { fontSize: scaled(19, f), fontWeight: "600" as const, color: "#0a0a0a", marginBottom: 6, marginTop: 10 },
+    h3: { fontSize: scaled(16, f), fontWeight: "600" as const, color: "#0a0a0a", marginBottom: 4, marginTop: 8 },
+    h4: { ...base, fontWeight: "600" as const, marginBottom: 4, marginTop: 6 },
+    h5: { ...base, fontWeight: "600" as const, marginBottom: 3, marginTop: 4 },
+    h6: { ...base, marginBottom: 3, marginTop: 4 },
+    link: { ...base, color: acc.light.accent },
+    blockquote: {
+      backgroundColor: "transparent",
+      borderLeftWidth: 3,
+      borderLeftColor: "#d1d5db",
+      paddingLeft: 12,
+      paddingVertical: 2,
+      marginVertical: 4,
+    },
+    code: {
+      backgroundColor: acc.light.tintSurface,
+      color: acc.light.primary,
+      fontFamily: mono,
+      fontSize: scaled(13, f),
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    codespan: {
+      backgroundColor: acc.light.tintSurface,
+      color: acc.light.primary,
+      fontFamily: mono,
+      fontSize: scaled(13, f),
+      paddingHorizontal: 4,
+      paddingVertical: 1,
+      borderRadius: 3,
+    },
+    list: { marginBottom: 4 },
+    li: { ...base, marginBottom: 2 },
+    hr: { backgroundColor: "#e5e5e5", height: 1, marginVertical: 12 },
+    strong: { ...base, fontWeight: "700" as const },
+    em: { ...base, fontStyle: "italic" as const },
+    strikethrough: { ...base, textDecorationLine: "line-through" as const },
+    image: { borderRadius: 8 },
+  }
+}
+
+function theme(acc: AccentState, isDark: boolean, f: number) {
+  const light = lightTheme(acc, f)
   if (!isDark) return light
   return {
     ...light,
@@ -110,11 +118,15 @@ function theme(acc: AccentState, isDark: boolean) {
     h1: { ...light.h1, color: "#ffffff" },
     h2: { ...light.h2, color: "#ffffff" },
     h3: { ...light.h3, color: "#ffffff" },
-    link: { color: acc.dark.soft },
+    h4: { ...light.h4, color: "#ffffff" },
+    h5: { ...light.h5, color: "#ffffff" },
+    h6: { ...light.h6, color: "#ffffff" },
+    link: { ...light.link, color: acc.dark.soft },
     blockquote: {
       ...light.blockquote,
       borderLeftColor: "#4a4a5a",
     },
+    li: { ...light.li, color: "#e5e5e5" },
     code: {
       ...light.code,
       backgroundColor: acc.dark.tintBg,
@@ -125,18 +137,24 @@ function theme(acc: AccentState, isDark: boolean) {
       backgroundColor: acc.dark.tintBg,
       color: acc.dark.softer,
     },
+    strong: { ...light.strong, color: "#e5e5e5" },
+    em: { ...light.em, color: "#e5e5e5" },
+    strikethrough: { ...light.strikethrough, color: "#e5e5e5" },
     hr: { ...light.hr, backgroundColor: "#2a2a2a" },
   }
 }
 
 interface Props {
   children: string
+  /** Message body font size in points. Defaults to the original UI size (15). */
+  fontSize?: number
 }
 
-export function Markdown({ children }: Props) {
+export function Markdown({ children, fontSize = BASE_SIZE }: Props) {
   const isDark = useColorScheme() === "dark"
   const acc = useAccent()
-  const themeStyles = theme(acc, isDark)
+  const f = fontSize / BASE_SIZE
+  const themeStyles = theme(acc, isDark, f)
 
   // A module-scope singleton renderer would share one CustomRenderer (and
   // its underlying github-slugger) across every Markdown instance and every
@@ -147,7 +165,12 @@ export function Markdown({ children }: Props) {
   // the renderer to `children` resets the slugger per parse, so keys are
   // deterministic (and stable) for a given value, while re-renders with an
   // unchanged value stay memoized instead of creating a new renderer.
-  const renderer = useMemo(() => new CustomRenderer(), [children])
+  const renderer = useMemo(() => new CustomRenderer(), [
+    children,
+    themeStyles.text?.fontSize,
+    themeStyles.text?.color,
+    themeStyles.text?.lineHeight,
+  ])
 
   // react-native-marked's default <RNMarkdown> export renders blocks inside a
   // FlatList. Chat messages are rendered inside app/session/[id].tsx's own
