@@ -59,6 +59,7 @@ const headerTitleStyles = StyleSheet.create({
   wrap: { flex: 1, overflow: "hidden", justifyContent: "flex-start" },
   title: { fontSize: 15, fontWeight: "600", color: "#0a0a0a" },
   titleDark: { color: "#ffffff" },
+  measure: { position: "absolute", top: 0, left: -10000, opacity: 0 },
 })
 
 function MarqueeTitle({ text, budget = 0 }: { text: string; budget?: number }) {
@@ -102,6 +103,18 @@ function MarqueeTitle({ text, budget = 0 }: { text: string; budget?: number }) {
 
   return (
     <View style={[headerTitleStyles.wrap, { width: wrapW }]}>
+      <View pointerEvents="none" style={headerTitleStyles.measure}>
+        <Text
+          numberOfLines={1}
+          style={headerTitleStyles.title}
+          onTextLayout={(e) => {
+            const w = e.nativeEvent.lines[0]?.width
+            if (w) setTextW(Math.round(w))
+          }}
+        >
+          {text}
+        </Text>
+      </View>
       <Animated.View
         style={[
           { flexDirection: "row" },
@@ -110,11 +123,11 @@ function MarqueeTitle({ text, budget = 0 }: { text: string; budget?: number }) {
       >
         <Text
           numberOfLines={1}
-          onTextLayout={(e) => {
-            const w = e.nativeEvent.lines[0]?.width
-            if (w) setTextW(Math.round(w))
-          }}
-          style={[headerTitleStyles.title, isDark && headerTitleStyles.titleDark]}
+          style={[
+            headerTitleStyles.title,
+            isDark && headerTitleStyles.titleDark,
+            overflow && { width: textW },
+          ]}
         >
           {text}
         </Text>
