@@ -13,6 +13,7 @@ import {
   Alert,
   Animated,
   Easing,
+  useWindowDimensions,
 } from "react-native"
 import { useLocalSearchParams, Stack, useRouter, useFocusEffect } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
@@ -46,93 +47,79 @@ import { useSpeech } from "../../src/lib/speech"
 import { useKeyboardHeight } from "../../src/lib/use-keyboard-height"
 import { useAccent, type AccentState } from "../../src/lib/accents"
 
-// Header title marquee. When the session title overflows the header width it
-// scrolls, but never continuously: it holds still first so the start is
-// readable, scrolls left, pauses, scrolls back, pauses, then loops. Static
-// (non-overflowing) titles are plain text.
-const TITLE_HOLD_MS = 2000
-const TITLE_SCROLL_MS = 3000
-const TITLE_END_HOLD_MS = 1500
+// Header title marquee. When the session title overflows the header title
+// area it scrolls, but never continuously: it slides left, returns, pauses a
+// few seconds, then repeats. Static (non-overflowing) titles are plain text.
+const TITLE_SCROLL_MS = 2200
+const TITLE_END_READ_MS = 2000
+const TITLE_PAUSE_MS = 3000
 const TITLE_GAP = 16
 
 const headerTitleStyles = StyleSheet.create({
   wrap: { flex: 1, overflow: "hidden", justifyContent: "flex-start" },
   title: { fontSize: 15, fontWeight: "600", color: "#0a0a0a" },
   titleDark: { color: "#ffffff" },
-  measure: { position: "absolute", top: 0, left: -10000, opacity: 0 },
 })
 
 function MarqueeTitle({ text, budget = 0 }: { text: string; budget?: number }) {
   const isDark = useColorScheme() === "dark"
-  const [containerW, setContainerW] = useState<number | null>(null)
+  const { width: winW } = useWindowDimensions()
   const [textW, setTextW] = useState<number | null>(null)
   const offset = useRef(new Animated.Value(0)).current
-  // On Android the header title is hosted in the toolbar's WRAP_CONTENT left
-  // view, which the toolbar measures to (close to) full width — so the wrap
-  // alone can't tell us the real title area. The caller measures the back
-  // button + headerRight budget and we subtract it here.
-  const available = containerW !== null ? Math.max(containerW - budget, 60) : null
-  const overflow = textW !== null && available !== null && textW > available && textW > 160
+  // Don't measure the toolbar container (it's WRAP_CONTENT and reports
+  // ambiguous widths). Compute the title area deterministically: window width
+  // minus the back button and headerRight budget the caller supplies.
+  const wrapW = Math.max(Math.round(winW) - budget, 120)
+  const overflow = textW !== null && textW > wrapW
 
   useEffect(() => {
-    if (!overflow || available === null || textW === null) {
+    if (!overflow || textW === null) {
       offset.setValue(0)
       return
     }
-    const distance = textW - available + TITLE_GAP
+    const distance = textW - wrapW + TITLE_GAP
     const anim = Animated.loop(
       Animated.sequence([
-        Animated.delay(TITLE_HOLD_MS),
         Animated.timing(offset, {
           toValue: -distance,
           duration: TITLE_SCROLL_MS,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
-        Animated.delay(TITLE_END_HOLD_MS),
+        Animated.delay(TITLE_END_READ_MS),
         Animated.timing(offset, {
           toValue: 0,
           duration: TITLE_SCROLL_MS,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
+        Animated.delay(TITLE_PAUSE_MS),
       ])
     )
     anim.start()
     return () => anim.stop()
-  }, [overflow, available, textW, offset])
+  }, [overflow, textW, wrapW, offset])
 
   return (
-    <>
-      <View pointerEvents="none" style={headerTitleStyles.measure}>
+    <View style={[headerTitleStyles.wrap, { width: wrapW }]}>
+      <Animated.View
+        style={[
+          { flexDirection: "row" },
+          overflow && { transform: [{ translateX: offset }] },
+        ]}
+      >
         <Text
           numberOfLines={1}
-          style={headerTitleStyles.title}
           onTextLayout={(e) => {
             const w = e.nativeEvent.lines[0]?.width
             if (w) setTextW(Math.round(w))
           }}
+          style={[headerTitleStyles.title, isDark && headerTitleStyles.titleDark]}
         >
           {text}
         </Text>
-      </View>
-      <View
-        style={headerTitleStyles.wrap}
-        onLayout={(e) => setContainerW(Math.round(e.nativeEvent.layout.width))}
-      >
-        <Animated.Text
-          numberOfLines={1}
-          style={[
-            headerTitleStyles.title,
-            isDark && headerTitleStyles.titleDark,
-            overflow && { width: textW },
-            overflow && { transform: [{ translateX: offset }] },
-          ]}
-        >
-          {text}
-        </Animated.Text>
-      </View>
-    </>
+      </Animated.View>
+    </View>
   )
 }
 
