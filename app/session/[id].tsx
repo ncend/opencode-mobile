@@ -606,6 +606,7 @@ export default function SessionScreen() {
       <Stack.Screen
         options={{
           title: currentSession?.title || t("session.titleFallback"),
+          headerTitleStyle: { fontSize: 15 },
           headerRight: () => (
             <View style={s.headerRight}>
               {shortDir && (
