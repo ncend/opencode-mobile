@@ -33,6 +33,7 @@ import {
   type SlashCommand,
   type Attachment,
 } from "../../src/components/chat"
+import { computeSessionUsage } from "../../src/lib/session-usage"
 import { useSessions } from "../../src/stores/sessions"
 import { useEvents, refreshPending } from "../../src/stores/events"
 import { useConnections } from "../../src/stores/connections"
@@ -594,6 +595,9 @@ export default function SessionScreen() {
     return found?.variants
   }, [model, providers])
 
+  // Token usage: last assistant message token count vs its model context limit (same as SessionInfo)
+  const usage = useMemo(() => computeSessionUsage(messages || [], providers), [messages, providers])
+
   return (
     <>
       <Stack.Screen
@@ -624,9 +628,10 @@ export default function SessionScreen() {
           s.container,
           isDark && s.containerDark,
           // Android: pad with the real keyboard height (see useKeyboardHeight)
-          // so the composer stays visible above the keyboard. iOS relies on
-          // behavior="padding" below.
-          Platform.OS === "android" && { paddingBottom: keyboardHeight },
+          // so the composer stays visible above the keyboard, plus a little
+          // breathing room so the input doesn't sit flush against the keys.
+          // iOS relies on behavior="padding" below.
+          Platform.OS === "android" && { paddingBottom: keyboardHeight + 15 },
         ]}
         // Android's KeyboardAvoidingView is unreliable under edge-to-edge, so
         // its behavior is disabled there and avoidance is handled via the
@@ -802,6 +807,13 @@ export default function SessionScreen() {
               </Text>
             </TouchableOpacity>
           )}
+
+          {usage.percent > 0 && (
+            <View style={[s.tokenChip, isDark && s.tokenChipDark]} testID="token-percent-chip">
+              <Ionicons name="diamond-outline" size={14} color={isDark ? "#888888" : "#666666"} />
+              <Text style={[s.tokenLabel, isDark && s.metaDark]}>{`${usage.percent}%`}</Text>
+            </View>
+          )}
         </View>
 
         {/* Attachment preview */}
@@ -809,7 +821,15 @@ export default function SessionScreen() {
 
         {/* Input */}
         <View
-          style={[s.inputContainer, isDark && s.inputContainerDark, { paddingBottom: Math.max(12, insets.bottom) }]}
+          style={[
+            s.inputContainer,
+            isDark && s.inputContainerDark,
+            // Bottom breathing room: clears the system nav bar / gesture inset
+            // and keeps the input from sitting flush in either state. The
+            // KeyboardAvoidingView above adds the keyboard height on Android,
+            // so this pad applies on top of that when the keyboard is open.
+            { paddingBottom: Math.max(15, insets.bottom + 8) },
+          ]}
         >
           <View style={s.inputRow}>
             {/* Attach button */}
@@ -992,6 +1012,20 @@ function makeStyles(acc: AccentState) {
   variantChipActive: { backgroundColor: acc.light.tintBg },
   variantLabel: { fontSize: 12, color: "#666666" },
   variantLabelActive: { color: acc.light.accent },
+
+  // Token usage chip (context percent)
+  tokenChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginLeft: "auto",
+  },
+  tokenChipDark: { backgroundColor: "#1a1a1a" },
+  tokenLabel: { fontSize: 12, color: "#666666" },
 
   // Input
   inputContainer: {
