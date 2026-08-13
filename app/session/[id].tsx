@@ -62,19 +62,24 @@ const headerTitleStyles = StyleSheet.create({
   measure: { position: "absolute", top: 0, left: -10000, opacity: 0 },
 })
 
-function MarqueeTitle({ text }: { text: string }) {
+function MarqueeTitle({ text, budget = 0 }: { text: string; budget?: number }) {
   const isDark = useColorScheme() === "dark"
   const [containerW, setContainerW] = useState<number | null>(null)
   const [textW, setTextW] = useState<number | null>(null)
   const offset = useRef(new Animated.Value(0)).current
-  const overflow = containerW !== null && textW !== null && textW > containerW
+  // On Android the header title is hosted in the toolbar's WRAP_CONTENT left
+  // view, which the toolbar measures to (close to) full width — so the wrap
+  // alone can't tell us the real title area. The caller measures the back
+  // button + headerRight budget and we subtract it here.
+  const available = containerW !== null ? Math.max(containerW - budget, 60) : null
+  const overflow = textW !== null && available !== null && textW > available && textW > 160
 
   useEffect(() => {
-    if (!overflow) {
+    if (!overflow || available === null || textW === null) {
       offset.setValue(0)
       return
     }
-    const distance = textW - containerW + TITLE_GAP
+    const distance = textW - available + TITLE_GAP
     const anim = Animated.loop(
       Animated.sequence([
         Animated.delay(TITLE_HOLD_MS),
@@ -95,7 +100,7 @@ function MarqueeTitle({ text }: { text: string }) {
     )
     anim.start()
     return () => anim.stop()
-  }, [overflow, textW, containerW, offset])
+  }, [overflow, available, textW, offset])
 
   return (
     <>
@@ -179,6 +184,7 @@ export default function SessionScreen() {
   const [input, setInput] = useState("")
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [showInfo, setShowInfo] = useState(false)
+  const [headerRightW, setHeaderRightW] = useState(0)
 
   const {
     currentSession,
@@ -694,10 +700,18 @@ export default function SessionScreen() {
       <Stack.Screen
         options={{
           title: currentSession?.title || t("session.titleFallback"),
-          headerTitle: () => <MarqueeTitle text={currentSession?.title || t("session.titleFallback")} />,
+          headerTitle: () => (
+            <MarqueeTitle
+              text={currentSession?.title || t("session.titleFallback")}
+              budget={(Platform.OS === "ios" ? 60 : 56) + 8 + headerRightW}
+            />
+          ),
           headerTitleStyle: { fontSize: 15 },
           headerRight: () => (
-            <View style={s.headerRight}>
+            <View
+              style={s.headerRight}
+              onLayout={(e) => setHeaderRightW(Math.round(e.nativeEvent.layout.width))}
+            >
               {shortDir && (
                 <View style={[s.dirBadge, isDark && s.dirBadgeDark]}>
                   <Ionicons name="folder-outline" size={14} color={isDark ? "#888888" : "#666666"} />
